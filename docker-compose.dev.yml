@@ -1,0 +1,7 @@
+# Локальная разработка: Postgres на localhost:5432 (npm run dev на хосте)
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres
+
+services:
+  postgres:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"

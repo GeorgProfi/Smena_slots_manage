@@ -23,7 +23,7 @@ cp docker/app.prod.env.example .env
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ```
 
-Приложение: `http://127.0.0.1:3000`.
+Приложение: `http://127.0.0.1:3000`. Postgres **не** проброшен на хост (нет конфликта с `:5432`); доступ: `docker exec -it volunty-postgres psql -U volunty -d volunty`.
 
 ## 3. nginx на хосте
 

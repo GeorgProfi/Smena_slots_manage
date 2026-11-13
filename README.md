@@ -29,7 +29,7 @@ docker compose up --build
 
 1. **Start database**
    ```bash
-   docker compose up -d postgres
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres
    ```
 
 2. **Configure environment**

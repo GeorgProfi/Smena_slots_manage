@@ -1,6 +1,6 @@
-# VolunTy
+# Смена слоты
 
-**VolunTy** is a free and open-source platform for managing work and volunteer scheduling.
+**Смена слоты** — платформа для управления сменами и расписанием курьеров.
 
 
 ![Next.js](https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)

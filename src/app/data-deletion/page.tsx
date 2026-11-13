@@ -67,7 +67,7 @@ export default function DataDeletion() {
           </Link>
 
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Удаление данных</h1>
-          <p className="text-sm text-slate-500 mb-8">Запрос на удаление персональных данных из VolunTy</p>
+          <p className="text-sm text-slate-500 mb-8">Запрос на удаление персональных данных из «Смена слоты»</p>
 
           {!submitted ? (
             <>
@@ -173,7 +173,7 @@ export default function DataDeletion() {
                     <div className="p-6">
                       <h3 className="text-lg font-semibold text-slate-900">Вы уверены?</h3>
                       <p className="mt-2 text-sm text-slate-600">
-                        Аккаунт VolunTy и все данные будут удалены безвозвратно.
+                        Ваш аккаунт в «Смена слоты» и все данные будут удалены безвозвратно.
                       </p>
                       <div className="mt-6 flex items-center justify-end gap-3">
                         <button

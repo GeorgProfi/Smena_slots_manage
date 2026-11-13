@@ -13,7 +13,7 @@ export function roleLabel(role: string | null | undefined): string {
 }
 
 export const UI = {
-  appName: "VolunTy",
+  appName: "Смена слоты",
   couriers: "Курьеры",
   courier: "Курьер",
   courierPortal: "Кабинет курьера",

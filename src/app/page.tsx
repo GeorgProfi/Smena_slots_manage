@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { UI } from "@/lib/i18n/labels";
 
 export default function Home() {
   const { user, role, isLoading } = useAuth();
@@ -10,7 +11,7 @@ export default function Home() {
     <main className="flex flex-col min-h-[calc(100vh-3.5rem)] bg-white">
       <section className="flex-1 px-6 py-12 flex items-center justify-center">
         <div className="mx-auto max-w-2xl text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-5xl">VolunTy</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-5xl">{UI.appName}</h1>
           <p className="mt-4 text-base leading-7 text-slate-600">
             События, смены и обмен слотами — платформа для координации курьеров.
           </p>
@@ -59,7 +60,7 @@ export default function Home() {
 
       <footer className="border-t border-slate-200 flex-shrink-0">
         <div className="mx-auto max-w-6xl px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
-          <p className="text-slate-500">© {new Date().getFullYear()} VolunTy</p>
+          <p className="text-slate-500">© {new Date().getFullYear()} {UI.appName}</p>
           <div className="flex items-center gap-4">
             <Link href="/privacy" className="text-slate-600 hover:text-slate-900">
               Политика конфиденциальности

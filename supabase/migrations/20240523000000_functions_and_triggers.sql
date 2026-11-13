@@ -83,5 +83,5 @@ alter table profiles alter column calendar_token set not null;
 insert into organization_settings (key, value) values
   ('timezone', 'Europe/Brussels'),
   ('dark_mode', 'false'),
-  ('organization_name', 'VolunTy'),
+  ('organization_name', 'Смена слоты'),
   ('allow_self_signup', 'true');

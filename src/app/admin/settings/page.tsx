@@ -235,7 +235,7 @@ export default function AdminSettingsPage() {
                     onBlur={() => saveSetting("organization_name", orgName)}
                     disabled={saving}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 disabled:opacity-50"
-                    placeholder="VolunTy"
+                    placeholder="Смена слоты"
                   />
                 </div>
               </div>

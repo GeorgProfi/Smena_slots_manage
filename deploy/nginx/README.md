@@ -23,7 +23,36 @@ cp docker/app.prod.env.example .env
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ```
 
-Приложение: `http://127.0.0.1:3000`. Postgres **не** проброшен на хост (нет конфликта с `:5432`); доступ: `docker exec -it volunty-postgres psql -U volunty -d volunty`.
+Приложение: `http://127.0.0.1:3000`. Postgres по умолчанию **только внутри Docker**. Локально: `docker exec -it volunty-postgres psql -U volunty -d volunty`.
+
+### Доступ к БД извне (DBeaver, pgAdmin, с другого сервера)
+
+На хосте часто занят `:5432` — наружу публикуем **5433**:
+
+```bash
+# в .env при необходимости:
+# POSTGRES_PUBLISH_BIND=0.0.0.0
+# POSTGRES_PUBLISH_PORT=5433
+
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.db-expose.yml up -d
+```
+
+Подключение:
+
+```text
+Host: 151.243.180.100  (или smenaslots.duckdns.org)
+Port: 5433
+Database: volunty
+User: volunty
+Password: из .env POSTGRES_PASSWORD
+```
+
+**Безопасность:** смените `POSTGRES_PASSWORD`, откройте порт только для своего IP:
+
+```bash
+sudo ufw allow from ВАШ_IP to any port 5433 proto tcp
+# не используйте «ufw allow 5433» для всего интернета без крайней нужды
+```
 
 ## 3. nginx на хосте
 

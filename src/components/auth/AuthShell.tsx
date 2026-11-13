@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { UI } from "@/lib/i18n/labels";
 
 type AuthShellProps = {
   title: string;
@@ -13,7 +14,7 @@ export default function AuthShell({ title, subtitle, children }: AuthShellProps)
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <Link href="/" className="inline-block">
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white">VolunTy</h1>
+            <h1 className="text-4xl font-bold text-slate-900 dark:text-white">{UI.appName}</h1>
           </Link>
           <p className="mt-3 text-slate-600 dark:text-slate-400">{subtitle}</p>
         </div>

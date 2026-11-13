@@ -23,13 +23,13 @@ self.addEventListener("push", (event) => {
 
     // Show the notification
     event.waitUntil(
-      self.registration.showNotification(data.title || "VolunTy", options)
+      self.registration.showNotification(data.title || "Смена слоты", options)
     );
   } catch (error) {
     console.error("Error handling push notification:", error);
     // Fallback if data is not JSON
     event.waitUntil(
-      self.registration.showNotification("VolunTy", {
+      self.registration.showNotification("Смена слоты", {
         body: event.data.text(),
         icon: "/icon.png",
       })

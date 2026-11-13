@@ -1,4 +1,4 @@
-# VolunTy - TODO List
+# Смена слоты — TODO
 
 *Last updated: December 27, 2025*
 

@@ -95,10 +95,10 @@ END:VEVENT`);
 
     const ics = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//VolunTy//Calendar Feed//EN
+PRODID:-//Smena sloty//Calendar Feed//RU
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
-X-WR-CALNAME:${escapeCalendarText(`${profile.full_name || "Volunteer"} Shifts`)}
+X-WR-CALNAME:${escapeCalendarText(`${profile.full_name || "Курьер"} — смены`)}
 X-WR-TIMEZONE:UTC
 ${events.join("\n")}
 END:VCALENDAR`;

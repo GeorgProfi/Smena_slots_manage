@@ -140,7 +140,7 @@ CREATE TRIGGER profiles_set_calendar_token
 INSERT INTO organization_settings (key, value) VALUES
   ('timezone', 'Europe/Brussels'),
   ('dark_mode', 'false'),
-  ('organization_name', 'VolunTy'),
+  ('organization_name', 'Смена слоты'),
   ('allow_self_signup', 'true'),
   ('notifications_enabled', 'true'),
   ('reminder_hours_before_shift', '24');

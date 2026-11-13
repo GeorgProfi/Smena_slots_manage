@@ -24,12 +24,13 @@ docker compose up --build
 1. `cp docker/app.prod.env.example .env` — задайте секреты и `NEXT_PUBLIC_APP_URL=https://smenaslots.duckdns.org`
 2. `docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d`
 3. nginx + certbot на сервере — [`deploy/nginx/README.md`](deploy/nginx/README.md)
+4. Внешний доступ к Postgres: `docker-compose.db-expose.yml` (порт **5433** на хосте)
 
 ### Вариант B: только Postgres в Docker, Next на хосте
 
 1. **Start database**
    ```bash
-   docker compose up -d postgres
+   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres
    ```
 
 2. **Configure environment**

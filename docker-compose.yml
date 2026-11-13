@@ -3,8 +3,7 @@ services:
     image: postgres:16-alpine
     container_name: volunty-postgres
     restart: unless-stopped
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+    # Порт на хост — только через docker-compose.dev.yml (не публикуем в prod: конфликт с системным Postgres)
     env_file:
       - docker/app.env
     environment:

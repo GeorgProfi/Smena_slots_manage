@@ -220,10 +220,7 @@ export default function CreateEventModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6 border-b pb-4">
-          <h2 className="text-2xl font-bold text-slate-900">Create New Event</h2>
-          {isEdit && (
-            <span className="text-sm text-slate-500">Editing</span>
-          )}
+          <h2 className="text-2xl font-bold text-slate-900">{isEdit ? "Редактирование события" : "Новое событие"}</h2>
           <button
             onClick={onClose}
             className="rounded-full p-2 hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -238,7 +235,7 @@ export default function CreateEventModal({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Event Title
+                Название события
               </label>
               <input
                 type="text"
@@ -247,13 +244,13 @@ export default function CreateEventModal({
                 onChange={(e) => setTitle(e.target.value)}
                 disabled={isSaving}
                 className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
-                placeholder="e.g., Summer Festival"
+                placeholder="Например, летний фестиваль"
               />
             </div>
 
             <div className="col-span-2 space-y-2">
               <label className="block text-sm font-medium text-slate-700">
-                Start Date & Time
+                Дата и время начала
               </label>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <input
@@ -277,7 +274,7 @@ export default function CreateEventModal({
 
             <div className="col-span-2 space-y-2">
               <label className="block text-sm font-medium text-slate-700">
-                End Date & Time
+                Дата и время окончания
               </label>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <input
@@ -304,7 +301,7 @@ export default function CreateEventModal({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-900">
-                Sub-shifts & Roles
+                Слоты и роли
               </h3>
               <button
                 type="button"
@@ -313,7 +310,7 @@ export default function CreateEventModal({
                 className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="h-4 w-4" />
-                Add Role
+                Добавить роль
               </button>
             </div>
 
@@ -325,7 +322,7 @@ export default function CreateEventModal({
                 >
                   <div className="flex-1">
                     <label className="mb-1 block text-xs font-medium text-slate-500">
-                      Role Name
+                      Название роли
                     </label>
                     <input
                       type="text"
@@ -333,7 +330,7 @@ export default function CreateEventModal({
                       onChange={(e) =>
                         updateSubShift(shift.id, "roleName", e.target.value)
                       }
-                      placeholder="e.g., Bar, Security"
+                      placeholder="Например, бар, охрана"
                       disabled={isSaving}
                       className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                     />
@@ -342,7 +339,7 @@ export default function CreateEventModal({
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-500">
-                        Start Date
+                        Дата начала
                       </label>
                       <input
                         type="date"
@@ -356,7 +353,7 @@ export default function CreateEventModal({
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-500">
-                        Start Time
+                        Время начала
                       </label>
                       <input
                         type="time"
@@ -373,7 +370,7 @@ export default function CreateEventModal({
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-500">
-                        End Date
+                        Дата окончания
                       </label>
                       <input
                         type="date"
@@ -387,7 +384,7 @@ export default function CreateEventModal({
                     </div>
                     <div>
                       <label className="mb-1 block text-xs font-medium text-slate-500">
-                        End Time
+                        Время окончания
                       </label>
                       <input
                         type="time"
@@ -403,7 +400,7 @@ export default function CreateEventModal({
 
                   <div className="w-32">
                     <label className="mb-1 block text-xs font-medium text-slate-500">
-                      Capacity
+                      Вместимость
                     </label>
                     <input
                       type="number"
@@ -426,7 +423,7 @@ export default function CreateEventModal({
                     onClick={() => handleRemoveSubShift(shift.id)}
                     disabled={isSaving}
                     className="mb-1 rounded-md p-2 text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed self-start"
-                    title="Remove Role"
+                    title="Удалить роль"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -442,7 +439,7 @@ export default function CreateEventModal({
               disabled={isSaving}
               className="rounded-md px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              Отмена
             </button>
             <button
               type="submit"
@@ -455,10 +452,10 @@ export default function CreateEventModal({
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Saving...
+                  Сохранение…
                 </>
               ) : (
-                isEdit ? "Save Changes" : "Create Event"
+                isEdit ? "Сохранить изменения" : "Создать событие"
               )}
             </button>
             {isEdit && onDelete && initialEvent?.id && (
@@ -468,7 +465,7 @@ export default function CreateEventModal({
                 disabled={isSaving}
                 className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Delete
+                Удалить
               </button>
             )}
           </div>

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import SuperadminTransfer from "@/components/SuperadminTransfer";
 import { Save, Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 const timezones = [
   { value: "Europe/Brussels", label: "Europe/Brussels (Belgium)" },
@@ -22,12 +21,16 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [timezone, setTimezone] = useState("Europe/Brussels");
-  const supabase = useMemo(() => createClient(), []);
 
   // Organization settings
   const [orgName, setOrgName] = useState<string>("");
   const [orgLogoUrl, setOrgLogoUrl] = useState<string>("");
   const [allowSelfSignup, setAllowSelfSignup] = useState<boolean>(true);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
   const [reminderHours, setReminderHours] = useState<number>(24);
 
@@ -76,9 +79,35 @@ export default function AdminSettingsPage() {
       setTimezone(value);
     } catch (error) {
       console.error("Failed to save setting:", error);
-      alert("Failed to save setting");
+      alert("Не удалось сохранить настройку");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const sendInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviteMessage(null);
+    setInviteError(null);
+    setInviting(true);
+    try {
+      const res = await fetch("/api/admin/users/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: inviteEmail.trim(),
+          fullName: inviteName.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Invite failed");
+      setInviteMessage(`Приглашение отправлено на ${inviteEmail.trim()}.`);
+      setInviteEmail("");
+      setInviteName("");
+    } catch (err: unknown) {
+      setInviteError(err instanceof Error ? err.message : "Не удалось отправить приглашение");
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -93,7 +122,7 @@ export default function AdminSettingsPage() {
       if (!res.ok) throw new Error("Failed to save setting");
     } catch (e) {
       console.error("Failed to save setting:", e);
-      alert("Failed to save setting");
+      alert("Не удалось сохранить настройку");
     } finally {
       setSaving(false);
     }
@@ -101,25 +130,16 @@ export default function AdminSettingsPage() {
 
   const loadUserPreferences = async () => {
     try {
-      const { data: userData, error: userErr } = await supabase.auth.getUser();
-      if (userErr) {
-        console.error("Error getting user:", userErr.message);
+      const res = await fetch("/api/user/preferences");
+      if (!res.ok) {
         setPrefLoading(false);
         return;
       }
-      const uid = userData.user?.id ?? null;
-      setUserId(uid);
-      if (!uid) {
-        setPrefLoading(false);
-        return;
-      }
-      const { data, error } = await supabase
-        .from("user_preferences")
-        .select("dark_mode, email_notifications")
-        .eq("user_id", uid)
-        .maybeSingle();
-      if (error) {
-        console.error("Error loading preferences:", error.message);
+      const data = await res.json();
+      const meRes = await fetch("/api/auth/me");
+      if (meRes.ok) {
+        const me = await meRes.json();
+        setUserId(me.user?.id ?? null);
       }
       setDarkModePref(Boolean(data?.dark_mode ?? false));
       setEmailNotifications(Boolean(data?.email_notifications ?? true));
@@ -134,20 +154,20 @@ export default function AdminSettingsPage() {
     if (!userId) return;
     setPrefLoading(true);
     try {
-      const { error } = await supabase
-        .from("user_preferences")
-        .upsert({
-          user_id: userId,
+      const res = await fetch("/api/user/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           dark_mode: prefs.dark_mode ?? darkModePref,
           email_notifications: prefs.email_notifications ?? emailNotifications,
-          updated_at: new Date().toISOString(),
-        });
-      if (error) throw error;
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save preferences");
       if (prefs.dark_mode !== undefined) setDarkModePref(prefs.dark_mode);
       if (prefs.email_notifications !== undefined) setEmailNotifications(prefs.email_notifications);
     } catch (e: any) {
       console.error("Failed to save preferences:", e.message ?? e);
-      alert("Failed to save preferences");
+      alert("Не удалось сохранить настройки");
     } finally {
       setPrefLoading(false);
     }
@@ -168,19 +188,17 @@ export default function AdminSettingsPage() {
       <div className="p-8 bg-slate-50 min-h-screen">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
-            <p className="text-slate-500">
-              Configure organization-wide settings and preferences.
-            </p>
+            <h1 className="text-3xl font-bold text-slate-900">Настройки</h1>
+            <p className="text-slate-500">Параметры организации и личные предпочтения.</p>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-slate-200">
             <div className="p-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-slate-900">Timezone</h3>
+                  <h3 className="text-lg font-semibold text-slate-900">Часовой пояс</h3>
                   <p className="text-sm text-slate-500 mt-1">
-                    Set the default timezone for all events and schedules. This affects how dates and times are displayed throughout the application.
+                    Часовой пояс по умолчанию для событий и отображения дат в приложении.
                   </p>
                 </div>
                 <div className="w-72">
@@ -206,8 +224,8 @@ export default function AdminSettingsPage() {
             <div className="p-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-slate-900">Organization Name</h3>
-                  <p className="text-sm text-slate-500 mt-1">Displayed across the app and in emails.</p>
+                  <h3 className="text-lg font-semibold text-slate-900">Название организации</h3>
+                  <p className="text-sm text-slate-500 mt-1">Отображается в приложении и в письмах.</p>
                 </div>
                 <div className="w-72">
                   <input
@@ -229,8 +247,8 @@ export default function AdminSettingsPage() {
             <div className="p-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-slate-900">Logo URL</h3>
-                  <p className="text-sm text-slate-500 mt-1">Public URL to your organization logo.</p>
+                  <h3 className="text-lg font-semibold text-slate-900">URL логотипа</h3>
+                  <p className="text-sm text-slate-500 mt-1">Публичная ссылка на логотип организации.</p>
                 </div>
                 <div className="w-72">
                   <input
@@ -252,8 +270,8 @@ export default function AdminSettingsPage() {
             <div className="p-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-slate-900">Allow Self Signup</h3>
-                  <p className="text-sm text-slate-500 mt-1">Permit volunteers to sign up without an invite.</p>
+                  <h3 className="text-lg font-semibold text-slate-900">Самостоятельная регистрация</h3>
+                  <p className="text-sm text-slate-500 mt-1">Разрешить курьерам регистрироваться без приглашения.</p>
                 </div>
                 <div className="w-72">
                   <label className="inline-flex items-center gap-2">
@@ -266,10 +284,55 @@ export default function AdminSettingsPage() {
                       }}
                       disabled={saving}
                     />
-                    <span className="text-sm text-slate-700">Enabled</span>
+                    <span className="text-sm text-slate-700">Включено</span>
                   </label>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Invite volunteer */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+            <div className="p-6 space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Пригласить курьера</h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Отправить приглашение на email, если саморегистрация отключена.
+                </p>
+              </div>
+              {inviteMessage && (
+                <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
+                  {inviteMessage}
+                </p>
+              )}
+              {inviteError && (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">{inviteError}</p>
+              )}
+              <form onSubmit={sendInvite} className="grid gap-3 sm:grid-cols-2">
+                <input
+                  type="email"
+                  required
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="kuryer@example.com"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                />
+                <input
+                  type="text"
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  placeholder="Имя (необязательно)"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                />
+                <button
+                  type="submit"
+                  disabled={inviting}
+                  className="sm:col-span-2 inline-flex justify-center items-center gap-2 rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
+                >
+                  {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {inviting ? "Отправка…" : "Отправить приглашение"}
+                </button>
+              </form>
             </div>
           </div>
 
@@ -278,8 +341,8 @@ export default function AdminSettingsPage() {
             <div className="p-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-slate-900">Email Notifications</h3>
-                  <p className="text-sm text-slate-500 mt-1">Enable global email notifications (reminders, alerts).</p>
+                  <h3 className="text-lg font-semibold text-slate-900">Email-уведомления</h3>
+                  <p className="text-sm text-slate-500 mt-1">Общие письма: напоминания и оповещения.</p>
                 </div>
                 <div className="w-72">
                   <label className="inline-flex items-center gap-2">
@@ -292,7 +355,7 @@ export default function AdminSettingsPage() {
                       }}
                       disabled={saving}
                     />
-                    <span className="text-sm text-slate-700">Enabled</span>
+                    <span className="text-sm text-slate-700">Включено</span>
                   </label>
                 </div>
               </div>
@@ -304,8 +367,8 @@ export default function AdminSettingsPage() {
             <div className="p-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-slate-900">Reminder Timing</h3>
-                  <p className="text-sm text-slate-500 mt-1">Hours before a shift to send reminders.</p>
+                  <h3 className="text-lg font-semibold text-slate-900">Напоминания</h3>
+                  <p className="text-sm text-slate-500 mt-1">За сколько часов до смены отправлять напоминание.</p>
                 </div>
                 <div className="w-72">
                   <input
@@ -328,12 +391,12 @@ export default function AdminSettingsPage() {
             <div className="p-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-slate-900">Your Preferences</h3>
-                  <p className="text-sm text-slate-500 mt-1">Manage your personal notification and theme preferences.</p>
+                  <h3 className="text-lg font-semibold text-slate-900">Ваши настройки</h3>
+                  <p className="text-sm text-slate-500 mt-1">Личные уведомления и тема оформления.</p>
                 </div>
                 <div className="w-72 space-y-3">
                   <label className="flex items-center justify-between">
-                    <span className="text-sm text-slate-700">Email Notifications</span>
+                    <span className="text-sm text-slate-700">Email-уведомления</span>
                     <input
                       type="checkbox"
                       checked={emailNotifications}
@@ -342,7 +405,7 @@ export default function AdminSettingsPage() {
                     />
                   </label>
                   <label className="flex items-center justify-between">
-                    <span className="text-sm text-slate-700">Dark Mode (preference)</span>
+                    <span className="text-sm text-slate-700">Тёмная тема</span>
                     <input
                       type="checkbox"
                       checked={darkModePref}
@@ -358,7 +421,7 @@ export default function AdminSettingsPage() {
           {saving && (
             <div className="flex items-center gap-2 text-sm text-slate-600">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Saving...
+              Сохранение…
             </div>
           )}
         </div>

@@ -65,12 +65,12 @@ export default function PushNotificationToggle() {
           await sendSubscriptionToBackend(subscription, true);
           setHasSubscription(true);
         } else {
-          setError("Failed to subscribe to notifications. Please try again.");
+          setError("Не удалось подписаться на уведомления. Попробуйте снова.");
         }
       }
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : "Failed to update notification settings";
+        err instanceof Error ? err.message : "Не удалось обновить настройки уведомлений";
       setError(errorMessage);
       console.error("Notification toggle error:", err);
     } finally {
@@ -89,10 +89,10 @@ export default function PushNotificationToggle() {
           <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
           <div>
             <p className="text-sm font-medium text-amber-900">
-              Push notifications not supported
+              Push-уведомления не поддерживаются
             </p>
             <p className="text-sm text-amber-700 mt-1">
-              Your browser doesn't support push notifications. Please use a modern browser like Chrome, Firefox, or Edge.
+              Браузер не поддерживает push-уведомления. Используйте Chrome, Firefox или Edge.
             </p>
           </div>
         </div>
@@ -117,12 +117,12 @@ export default function PushNotificationToggle() {
             )}
             <div>
               <h3 className="text-lg font-semibold text-slate-900">
-                Push Notifications
+                Push-уведомления
               </h3>
               <p className="text-sm text-slate-600 mt-1">
                 {hasSubscription
-                  ? "You'll receive notifications about your shifts"
-                  : "Enable to get alerts about shift changes and reminders"}
+                  ? "Вы будете получать уведомления о сменах"
+                  : "Включите оповещения об изменениях и напоминаниях"}
               </p>
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function PushNotificationToggle() {
               }`}
             >
               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {hasSubscription ? "Disable" : "Enable"}
+              {hasSubscription ? "Отключить" : "Включить"}
             </button>
           </div>
         </div>

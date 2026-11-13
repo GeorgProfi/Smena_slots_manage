@@ -1,30 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/db/admin";
+import { asRows } from "@/lib/db/query";
+import { query } from "@/lib/db/pool";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 function adminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-async function requireAdmin() {
-  const supabase = createServerSupabaseClient();
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !userData.user) {
-    return { ok: false, status: 401, error: "Unauthorized" } as const;
-  }
-  const user = userData.user;
-  const { data: profile, error: profErr } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profErr || !profile || !["admin", "super_admin"].includes(profile.role)) {
-    return { ok: false, status: 403, error: "Forbidden" } as const;
-  }
-  return { ok: true } as const;
+  return createAdminClient();
 }
 
 export async function GET() {
@@ -34,58 +15,74 @@ export async function GET() {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
     const admin = adminClient();
-    const { data: requests, error } = await admin
+    const { data: requestsData, error } = await admin
       .from("swap_requests")
       .select("id, assignment_id, requester_id, status, created_at")
       .eq("status", "open")
       .order("created_at", { ascending: false });
     if (error) throw error;
 
-    if (!requests || requests.length === 0) {
+    const requests = asRows<{
+      id: string;
+      assignment_id: string;
+      requester_id: string;
+      status: string;
+      created_at: string;
+    }>(requestsData);
+    if (requests.length === 0) {
       return NextResponse.json([]);
     }
 
     const assignmentIds = requests.map((r) => r.assignment_id);
-    const { data: assignments, error: assignErr } = await admin
+    const { data: assignmentsData, error: assignErr } = await admin
       .from("shift_assignments")
       .select("id, sub_shift_id, user_id")
       .in("id", assignmentIds);
     if (assignErr) throw assignErr;
 
-    const subShiftIds = assignments?.map((a) => a.sub_shift_id) ?? [];
-    const { data: subShifts, error: ssErr } = await admin
+    const assignments = asRows<{ id: string; sub_shift_id: string; user_id: string }>(assignmentsData);
+    const subShiftIds = assignments.map((a) => a.sub_shift_id);
+    const { data: subShiftsData, error: ssErr } = await admin
       .from("sub_shifts")
       .select("id, event_id, role_name, start_time, end_time")
       .in("id", subShiftIds);
     if (ssErr) throw ssErr;
 
-    const eventIds = subShifts?.map((s) => s.event_id) ?? [];
-    const { data: events, error: evErr } = await admin
+    const subShifts = asRows<{
+      id: string;
+      event_id: string;
+      role_name: string;
+      start_time: string;
+      end_time: string;
+    }>(subShiftsData);
+    const eventIds = subShifts.map((s) => s.event_id);
+    const { data: eventsData, error: evErr } = await admin
       .from("events")
       .select("id, title, start_time, end_time")
       .in("id", eventIds);
     if (evErr) throw evErr;
+    const events = asRows<{ id: string; title: string; start_time: string; end_time: string }>(eventsData);
 
     const profilesMap: Record<string, { email?: string; full_name?: string }> = {};
     const requesterIds = Array.from(new Set(requests.map((r) => r.requester_id)));
     if (requesterIds.length) {
-      const { data: profs } = await admin
-        .from("profiles")
-        .select("id, full_name, auth:auth.users(email)")
-        .in("id", requesterIds);
-      (profs ?? []).forEach((p: any) => {
-        profilesMap[p.id] = {
-          email: p.auth?.[0]?.email,
-          full_name: p.full_name,
-        };
+      const { rows: profs } = await query<{ id: string; full_name: string; email: string }>(
+        `SELECT p.id, p.full_name, u.email
+         FROM profiles p
+         JOIN auth_users u ON u.id = p.id
+         WHERE p.id = ANY($1::uuid[])`,
+        [requesterIds]
+      );
+      profs.forEach((p) => {
+        profilesMap[p.id] = { email: p.email, full_name: p.full_name };
       });
     }
 
-    const subShiftMap = Object.fromEntries((subShifts ?? []).map((s) => [s.id, s]));
-    const eventMap = Object.fromEntries((events ?? []).map((e) => [e.id, e]));
+    const subShiftMap = Object.fromEntries(subShifts.map((s) => [s.id, s]));
+    const eventMap = Object.fromEntries(events.map((e) => [e.id, e]));
 
     const result = requests.map((r) => {
-      const assignment = assignments?.find((a) => a.id === r.assignment_id);
+      const assignment = assignments.find((a) => a.id === r.assignment_id);
       const sub = assignment ? subShiftMap[assignment.sub_shift_id] : undefined;
       const evt = sub ? eventMap[sub.event_id] : undefined;
       const requester = profilesMap[r.requester_id] ?? {};
@@ -195,13 +192,14 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ error: "Assignment not found" }, { status: 404 });
       }
 
-      const { data: existing } = await admin
+      const { data: existingData } = await admin
         .from("shift_assignments")
         .select("id")
         .eq("user_id", accepted_by_id)
         .eq("sub_shift_id", assignment.sub_shift_id)
         .limit(1);
-      if (existing && existing.length > 0) {
+      const existing = asRows<{ id: string }>(existingData);
+      if (existing.length > 0) {
         return NextResponse.json({ error: "User already assigned to this shift" }, { status: 409 });
       }
 

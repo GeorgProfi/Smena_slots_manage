@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Users, Mail, Clock, ChevronRight, Search, Shield, AlertCircle } from "lucide-react";
+import { roleLabel, UI } from "@/lib/i18n/labels";
 
 interface Volunteer {
   id: string;
@@ -96,7 +97,7 @@ export default function AdminVolunteersList() {
   );
 
   const handlePromote = async (id: string) => {
-    if (!confirm("Promote this volunteer to admin role?")) return;
+    if (!confirm("Назначить этого курьера администратором?")) return;
     setActionLoading(true);
     try {
       const res = await fetch(`/api/admin/volunteers/${id}`, {
@@ -105,12 +106,12 @@ export default function AdminVolunteersList() {
         body: JSON.stringify({ action: "promote" }),
       });
       if (res.ok) {
-        alert("Volunteer promoted to admin");
+        alert("Курьер назначен администратором");
         loadVolunteerDetail(id);
         loadVolunteers();
       } else {
         const err = await res.json();
-        alert(`Error: ${err.error}`);
+        alert(`Ошибка: ${err.error}`);
       }
     } finally {
       setActionLoading(false);
@@ -118,7 +119,7 @@ export default function AdminVolunteersList() {
   };
 
   const handleRemoveAccount = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete ${name}'s account? This cannot be undone.`)) return;
+    if (!confirm(`Удалить аккаунт ${name}? Это действие нельзя отменить.`)) return;
     setActionLoading(true);
     try {
       const res = await fetch(`/api/admin/volunteers/${id}`, {
@@ -127,12 +128,12 @@ export default function AdminVolunteersList() {
         body: JSON.stringify({ action: "delete" }),
       });
       if (res.ok) {
-        alert("Account deleted");
+        alert("Аккаунт удалён");
         setShowDetail(false);
         loadVolunteers();
       } else {
         const err = await res.json();
-        alert(`Error: ${err.error}`);
+        alert(`Ошибка: ${err.error}`);
       }
     } finally {
       setActionLoading(false);
@@ -150,12 +151,12 @@ export default function AdminVolunteersList() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Volunteers</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{UI.couriers}</h3>
         <div className="relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder="Поиск по имени или email…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 pr-3 py-1.5 text-sm border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
@@ -166,7 +167,7 @@ export default function AdminVolunteersList() {
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-8 text-center">
           <Users className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500 dark:text-slate-400">No volunteers found.</p>
+          <p className="text-slate-500 dark:text-slate-400">Курьеры не найдены.</p>
         </div>
       ) : (
         <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -174,10 +175,10 @@ export default function AdminVolunteersList() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-900 dark:text-white">Name</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-900 dark:text-white">Имя</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-900 dark:text-white">Email</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-900 dark:text-white">Assignments</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-900 dark:text-white">Last Active</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-900 dark:text-white">Смены</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-900 dark:text-white">Активность</th>
                   <th className="px-4 py-3 text-right font-semibold text-slate-900 dark:text-white"></th>
                 </tr>
               </thead>
@@ -200,7 +201,7 @@ export default function AdminVolunteersList() {
                     <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
                       {volunteer.last_active
                         ? new Date(volunteer.last_active).toLocaleDateString()
-                        : "Never"}
+                        : "Никогда"}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <ChevronRight className="h-4 w-4 text-slate-400" />
@@ -236,19 +237,19 @@ export default function AdminVolunteersList() {
               {/* Info */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Phone</p>
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Телефон</p>
                   <p className="text-sm text-slate-900 dark:text-white mt-1">
-                    {selectedVolunteer.phone_number || "Not provided"}
+                    {selectedVolunteer.phone_number || "Не указан"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Role</p>
-                  <p className="text-sm text-slate-900 dark:text-white mt-1 capitalize">
-                    {selectedVolunteer.role}
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Роль</p>
+                  <p className="text-sm text-slate-900 dark:text-white mt-1">
+                    {roleLabel(selectedVolunteer.role)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Total Assignments</p>
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Всего смен</p>
                   <p className="text-sm text-slate-900 dark:text-white mt-1">
                     {selectedVolunteer.upcoming.length + selectedVolunteer.past.length}
                   </p>
@@ -259,10 +260,10 @@ export default function AdminVolunteersList() {
               <div>
                 <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Upcoming Shifts
+                  Предстоящие смены
                 </h3>
                 {selectedVolunteer.upcoming.length === 0 ? (
-                  <p className="text-sm text-slate-500 dark:text-slate-400 italic">No upcoming shifts.</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 italic">Нет предстоящих смен.</p>
                 ) : (
                   <div className="space-y-2">
                     {selectedVolunteer.upcoming.map((a) => (
@@ -297,8 +298,8 @@ export default function AdminVolunteersList() {
                     onClick={() => setShowPastShifts(!showPastShifts)}
                     className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                   >
-                    {showPastShifts ? "Hide" : "Show"} {selectedVolunteer.past.length} past shift
-                    {selectedVolunteer.past.length !== 1 ? "s" : ""}
+                    {showPastShifts ? "Скрыть" : "Показать"} {selectedVolunteer.past.length}{" "}
+                    {selectedVolunteer.past.length === 1 ? "прошлую смену" : "прошлых смен"}
                   </button>
                   {showPastShifts && (
                     <div className="space-y-2 mt-3">
@@ -342,7 +343,7 @@ export default function AdminVolunteersList() {
                     className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     <Shield className="h-4 w-4" />
-                    Promote to Admin
+                    Сделать администратором
                   </button>
                 )}
                 {selectedVolunteer.role === "volunteer" && (
@@ -352,12 +353,12 @@ export default function AdminVolunteersList() {
                     className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     <AlertCircle className="h-4 w-4" />
-                    Remove Account
+                    Удалить аккаунт
                   </button>
                 )}
                 {selectedVolunteer.role !== "volunteer" && (
                   <p className="text-sm text-slate-500 dark:text-slate-400 italic py-2">
-                    Manager accounts cannot be modified or deleted from here.
+                    Аккаунты администраторов здесь нельзя изменить или удалить.
                   </p>
                 )}
               </div>
@@ -365,7 +366,7 @@ export default function AdminVolunteersList() {
                 onClick={() => setShowDetail(false)}
                 className="w-full px-4 py-2 bg-slate-900 dark:bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
               >
-                Close
+                Закрыть
               </button>
             </div>
           </div>

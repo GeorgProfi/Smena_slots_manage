@@ -1,30 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/db/admin";
+import { query } from "@/lib/db/pool";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 function adminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-async function requireAdmin() {
-  const supabase = createServerSupabaseClient();
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !userData.user) {
-    return { ok: false, status: 401, error: "Unauthorized", user: null } as const;
-  }
-  const user = userData.user;
-  const { data: profile, error: profErr } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profErr || !profile || !["admin", "super_admin"].includes(profile.role)) {
-    return { ok: false, status: 403, error: "Forbidden", user: null } as const;
-  }
-  return { ok: true, user, role: profile.role } as const;
+  return createAdminClient();
 }
 
 export async function GET(
@@ -56,30 +36,37 @@ export async function GET(
     const email = authUser?.email ?? "";
 
     // Fetch all assignments with event details
-    const { data: assignments, error: assignErr } = await admin
-      .from("shift_assignments")
-      .select(
-        "id, status, created_at, sub_shifts!inner(id, role_name, start_time, end_time, events!inner(id, title, start_time))"
-      )
-      .eq("user_id", volunteerId)
-      .order("created_at", { ascending: false });
-    if (assignErr) throw assignErr;
+    const { rows: assignments } = await query<{
+      id: string;
+      status: string;
+      created_at: string;
+      role_name: string;
+      start_time: string;
+      end_time: string;
+      event_title: string;
+      event_id: string;
+    }>(
+      `SELECT sa.id, sa.status, sa.created_at,
+        ss.role_name, COALESCE(ss.start_time, e.start_time) AS start_time, ss.end_time,
+        e.title AS event_title, e.id AS event_id
+       FROM shift_assignments sa
+       JOIN sub_shifts ss ON ss.id = sa.sub_shift_id
+       JOIN events e ON e.id = ss.event_id
+       WHERE sa.user_id = $1
+       ORDER BY sa.created_at DESC`,
+      [volunteerId]
+    );
 
-    // Map assignments with event info
-    const mapped_assignments = (assignments ?? []).map((a: any) => {
-      const sub = Array.isArray(a.sub_shifts) ? a.sub_shifts[0] : a.sub_shifts;
-      const evt = Array.isArray(sub?.events) ? sub?.events[0] : sub?.events;
-      return {
-        id: a.id,
-        status: a.status,
-        created_at: a.created_at,
-        role_name: sub?.role_name ?? "",
-        start_time: sub?.start_time ?? evt?.start_time,
-        end_time: sub?.end_time,
-        event_title: evt?.title ?? "",
-        event_id: evt?.id,
-      };
-    });
+    const mapped_assignments = assignments.map((a) => ({
+      id: a.id,
+      status: a.status,
+      created_at: a.created_at,
+      role_name: a.role_name,
+      start_time: a.start_time,
+      end_time: a.end_time,
+      event_title: a.event_title,
+      event_id: a.event_id,
+    }));
 
     // Separate upcoming and past assignments
     const now = new Date();

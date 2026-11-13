@@ -189,7 +189,7 @@ export default function AdminSchedule() {
           }
         }
         if (!result.ok) {
-          const msg = result.body?.error || "Failed to save event";
+          const msg = result.body?.error || "Не удалось сохранить событие";
           throw new Error(msg);
         }
       } else {
@@ -214,7 +214,7 @@ export default function AdminSchedule() {
           };
           const result = await persistEvent(payload);
           if (!result.ok) {
-            const msg = result.body?.error || "Failed to create event";
+            const msg = result.body?.error || "Не удалось создать событие";
             throw new Error(msg);
           }
         }
@@ -225,7 +225,7 @@ export default function AdminSchedule() {
       setEditingEvent(null);
     } catch (error: any) {
       console.error("Failed to save event:", error);
-      alert(error?.message || "Failed to save event. Please try again.");
+      alert(error?.message || "Не удалось сохранить событие. Попробуйте снова.");
     } finally {
       setIsSaving(false);
     }
@@ -243,7 +243,7 @@ export default function AdminSchedule() {
       setEditingEvent(null);
     } catch (error) {
       console.error("Failed to delete event:", error);
-      alert("Failed to delete event. Please try again.");
+      alert("Не удалось удалить событие. Попробуйте снова.");
     } finally {
       setIsSaving(false);
     }
@@ -276,14 +276,14 @@ export default function AdminSchedule() {
             onClick={() => openCreate(new Date())}
           >
             <Plus className="h-4 w-4" />
-            Create Event
+            Создать событие
           </button>
         </div>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-7 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
-          {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label) => (
+          {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((label) => (
             <div key={label} className="py-2">{label}</div>
           ))}
         </div>

@@ -48,7 +48,7 @@ export async function GET() {
       currentUser: { user, error: userError?.message },
       profiles: { count: profiles?.length || 0, error: profilesError?.message },
       environment: {
-        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        database: Boolean(process.env.DATABASE_URL),
       },
     });
   } catch (e: any) {

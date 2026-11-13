@@ -20,7 +20,7 @@ export default function DataDeletion() {
     // If the user is logged in, perform immediate deletion
     if (user) {
       if (confirmText.trim().toUpperCase() !== "DELETE") {
-        setError("Please type DELETE to confirm.");
+        setError('Введите DELETE для подтверждения.');
         return;
       }
       // Show final confirmation modal before proceeding
@@ -42,14 +42,14 @@ export default function DataDeletion() {
         body: JSON.stringify({ reason }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Deletion failed" }));
-        throw new Error(data.error || "Deletion failed");
+        const data = await res.json().catch(() => ({ error: "Не удалось удалить" }));
+        throw new Error(data.error || "Не удалось удалить");
       }
       await signOut();
       setShowConfirm(false);
       setSubmitted(true);
     } catch (err: any) {
-      setError(err?.message || "Something went wrong while deleting your data.");
+      setError(err?.message || "Ошибка при удалении данных.");
     } finally {
       setDeleting(false);
     }
@@ -63,27 +63,23 @@ export default function DataDeletion() {
             href="/"
             className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 mb-6"
           >
-            ← Back to Home
+            ← На главную
           </Link>
 
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            Data Deletion Request
-          </h1>
-          <p className="text-sm text-slate-500 mb-8">
-            Request deletion of your personal data from VolunTy
-          </p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Удаление данных</h1>
+          <p className="text-sm text-slate-500 mb-8">Запрос на удаление персональных данных из VolunTy</p>
 
           {!submitted ? (
             <>
               {user && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                  <h3 className="font-semibold text-red-900 mb-2">Immediate Account Deletion</h3>
+                  <h3 className="font-semibold text-red-900 mb-2">Немедленное удаление аккаунта</h3>
                   <p className="text-sm text-red-800 mb-3">
-                    You are currently signed in. Submitting this form will permanently delete your account and all associated data immediately.
+                    Вы вошли в систему. Отправка формы безвозвратно удалит аккаунт и все связанные данные.
                   </p>
                   <div className="space-y-3">
                     <label className="block text-sm font-medium text-red-900">
-                      Type <span className="font-bold">DELETE</span> to confirm
+                      Введите <span className="font-bold">DELETE</span> для подтверждения
                     </label>
                     <input
                       type="text"
@@ -97,35 +93,24 @@ export default function DataDeletion() {
               )}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <h3 className="font-semibold text-blue-900 mb-2">
-                  What will be deleted?
+                  Что будет удалено?
                 </h3>
                 <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                  <li>Your account and profile information</li>
-                  <li>Your volunteer shift history</li>
-                  <li>Any personal data associated with your account</li>
-                  <li>
-                    Your authentication data (Facebook login connection will be
-                    removed)
-                  </li>
+                  <li>Аккаунт и профиль</li>
+                  <li>История смен</li>
+                  <li>Персональные данные, связанные с аккаунтом</li>
+                  <li>Учётные данные для входа</li>
                 </ul>
               </div>
 
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
                 <h3 className="font-semibold text-amber-900 mb-2">
-                  Important Notes
+                  Важно
                 </h3>
                 <ul className="text-sm text-amber-800 space-y-1 list-disc list-inside">
-                  <li>
-                    This action is irreversible once processed (within 30 days)
-                  </li>
-                  <li>
-                    You will lose access to your volunteer scheduling and
-                    history
-                  </li>
-                  <li>
-                    Organizations may retain anonymized data for compliance
-                    purposes
-                  </li>
+                  <li>После обработки (до 30 дней) восстановление невозможно</li>
+                  <li>Доступ к расписанию и истории будет потерян</li>
+                  <li>Организация может хранить обезличенные данные для отчётности</li>
                 </ul>
               </div>
 
@@ -140,19 +125,19 @@ export default function DataDeletion() {
                     htmlFor="email"
                     className="block text-sm font-medium text-slate-700 mb-2"
                   >
-                    Email Address or Facebook Account
+                    Email
                   </label>
                   <input
                     type="text"
                     id="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com or Facebook user ID"
+                    placeholder="your@email.com"
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                   <p className="mt-1 text-xs text-slate-500">
-                    Provide the email or Facebook account you used to sign up
+                    Укажите email, с которым регистрировались
                   </p>
                 </div>
 
@@ -161,14 +146,14 @@ export default function DataDeletion() {
                     htmlFor="reason"
                     className="block text-sm font-medium text-slate-700 mb-2"
                   >
-                    Reason for Deletion (Optional)
+                    Причина (необязательно)
                   </label>
                   <textarea
                     id="reason"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     rows={4}
-                    placeholder="Help us improve by sharing why you're leaving..."
+                    placeholder="Расскажите, почему уходите…"
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -178,7 +163,7 @@ export default function DataDeletion() {
                   disabled={deleting}
                   className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
                 >
-                  {deleting ? "Deleting..." : user ? "Delete My Account & Data" : "Submit Deletion Request"}
+                  {deleting ? "Удаление…" : user ? "Удалить мой аккаунт и данные" : "Отправить запрос"}
                 </button>
               </form>
 
@@ -186,9 +171,9 @@ export default function DataDeletion() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                   <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-slate-200">
                     <div className="p-6">
-                      <h3 className="text-lg font-semibold text-slate-900">Are you absolutely sure?</h3>
+                      <h3 className="text-lg font-semibold text-slate-900">Вы уверены?</h3>
                       <p className="mt-2 text-sm text-slate-600">
-                        This action will permanently delete your VolunTy account and all associated data. This cannot be undone.
+                        Аккаунт VolunTy и все данные будут удалены безвозвратно.
                       </p>
                       <div className="mt-6 flex items-center justify-end gap-3">
                         <button
@@ -196,7 +181,7 @@ export default function DataDeletion() {
                           onClick={() => setShowConfirm(false)}
                           className="px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                         >
-                          Cancel
+                          Отмена
                         </button>
                         <button
                           type="button"
@@ -204,7 +189,7 @@ export default function DataDeletion() {
                           disabled={deleting}
                           className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
                         >
-                          {deleting ? "Deleting..." : "Yes, delete my account"}
+                          {deleting ? "Удаление…" : "Да, удалить аккаунт"}
                         </button>
                       </div>
                     </div>
@@ -214,18 +199,14 @@ export default function DataDeletion() {
 
               <div className="mt-8 pt-6 border-t border-slate-200">
                 <h3 className="font-semibold text-slate-900 mb-3">
-                  Alternative Options
+                  Другие варианты
                 </h3>
                 <div className="space-y-2 text-sm text-slate-600">
-                  <p>
-                    Instead of deleting your account, you can:
-                  </p>
+                  <p>Вместо удаления можно:</p>
                   <ul className="list-disc list-inside space-y-1 ml-4">
-                    <li>Simply sign out and stop using the service</li>
-                    <li>Revoke VolunTy's access in your Facebook settings</li>
-                    <li>
-                      Contact us at privacy@volunty.app for other options
-                    </li>
+                    <li>Выйти из аккаунта и перестать пользоваться сервисом</li>
+                    <li>Сменить пароль на /account/password</li>
+                    <li>Написать на privacy@volunty.app</li>
                   </ul>
                 </div>
               </div>
@@ -248,44 +229,30 @@ export default function DataDeletion() {
                 </svg>
               </div>
               <h2 className="text-2xl font-semibold text-slate-900 mb-2">
-                Request Submitted
+                Запрос отправлен
               </h2>
               <p className="text-slate-600 mb-6">
-                Your data deletion request has been received. We will process it
-                within 30 days and send a confirmation to the email or account
-                you provided.
+                Запрос получен. Обработаем в течение 30 дней и отправим подтверждение на указанный email.
               </p>
-              <p className="text-sm text-slate-500 mb-6">
-                If you have any questions, contact us at privacy@volunty.app
-              </p>
+              <p className="text-sm text-slate-500 mb-6">Вопросы: privacy@volunty.app</p>
               <Link
                 href="/"
                 className="inline-block bg-slate-900 text-white px-6 py-2 rounded-lg font-medium hover:bg-slate-800 transition-colors"
               >
-                Return to Home
+                На главную
               </Link>
             </div>
           )}
         </div>
 
-        {/* Instructions for Facebook Users */}
         <div className="mt-8 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-3">
-            For Facebook Login Users
-          </h2>
-          <p className="text-sm text-slate-600 mb-3">
-            You can also revoke VolunTy's access directly from Facebook:
-          </p>
-          <ol className="text-sm text-slate-600 space-y-2 list-decimal list-inside">
-            <li>Go to your Facebook Settings & Privacy → Settings</li>
-            <li>Click on "Apps and Websites"</li>
-            <li>Find "VolunTy" in the list</li>
-            <li>Click "Remove" to revoke access</li>
-          </ol>
-          <p className="text-sm text-slate-500 mt-4">
-            Note: Revoking access prevents you from logging in, but doesn't
-            delete your data from our system. Use the form above to request data
-            deletion.
+          <h2 className="text-lg font-semibold text-slate-900 mb-3">Вход через Google</h2>
+          <p className="text-sm text-slate-600">
+            Если раньше входили через Google, задайте пароль через{" "}
+            <Link href="/forgot-password" className="text-blue-600 hover:underline">
+              сброс пароля
+            </Link>{" "}
+            на том же email.
           </p>
         </div>
       </div>

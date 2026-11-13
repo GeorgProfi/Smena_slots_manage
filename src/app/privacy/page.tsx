@@ -9,175 +9,108 @@ export default function PrivacyPolicy() {
             href="/"
             className="inline-flex items-center text-sm text-slate-600 hover:text-slate-900 mb-6"
           >
-            ← Back to Home
+            ← На главную
           </Link>
 
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            Privacy Policy
-          </h1>
-          <p className="text-sm text-slate-500 mb-8">
-            Last updated: December 23, 2025
-          </p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Политика конфиденциальности</h1>
+          <p className="text-sm text-slate-500 mb-8">Обновлено: 23 декабря 2025 г.</p>
 
           <div className="prose prose-slate max-w-none space-y-6">
             <section>
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                1. Introduction
-              </h2>
+              <h2 className="text-xl font-semibold text-slate-900 mb-3">1. Введение</h2>
               <p className="text-slate-600">
-                VolunTy ("we", "our", or "us") is committed to protecting your
-                privacy. This Privacy Policy explains how we collect, use, and
-                safeguard your information when you use our volunteer scheduling
-                application.
+                VolunTy («мы») защищает вашу конфиденциальность. Эта политика объясняет, какие данные мы собираем,
+                как используем и храним их при работе с приложением для планирования смен курьеров.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                2. Information We Collect
-              </h2>
-              <p className="text-slate-600 mb-2">
-                When you sign in with Facebook, we collect:
-              </p>
+              <h2 className="text-xl font-semibold text-slate-900 mb-3">2. Какие данные собираем</h2>
+              <p className="text-slate-600 mb-2">При регистрации и входе:</p>
               <ul className="list-disc list-inside text-slate-600 space-y-1 ml-4">
-                <li>Your public profile information (name, profile picture)</li>
-                <li>Your Facebook user ID</li>
-                <li>
-                  Any additional information you explicitly grant us permission
-                  to access
-                </li>
+                <li>Email и указанное имя</li>
+                <li>Данные профиля Google при входе через Google (имя, аватар), если включено</li>
+                <li>Идентификаторы аутентификации в нашей системе</li>
+              </ul>
+              <p className="text-slate-600 mt-3">Также сохраняем сведения о ваших сменах и действиях в приложении.</p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-3">3. Как используем данные</h2>
+              <ul className="list-disc list-inside text-slate-600 space-y-1 ml-4">
+                <li>Вход и идентификация в системе</li>
+                <li>Управление сменами и расписанием</li>
+                <li>Показ доступных смен и уведомления</li>
+                <li>Улучшение сервиса</li>
+                <li>Связь по вопросам смен и событий</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-3">4. Передача данных</h2>
+              <p className="text-slate-600">
+                Мы не продаём персональные данные. Данные могут передаваться поставщикам инфраструктуры (хостинг, БД,
+                почта) и администраторам вашей организации — только в объёме, нужном для координации смен.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-3">5. Безопасность</h2>
+              <p className="text-slate-600">
+                Применяем разумные меры защиты. Передача данных через интернет не может быть полностью безопасной.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-slate-900 mb-3">6. Ваши права</h2>
+              <ul className="list-disc list-inside text-slate-600 space-y-1 ml-4">
+                <li>Доступ к данным и исправление</li>
+                <li>Удаление данных</li>
+                <li>Отзыв согласия</li>
+                <li>Экспорт данных (по запросу)</li>
               </ul>
               <p className="text-slate-600 mt-3">
-                We also collect information about your volunteer activities and
-                shifts within our application.
+                Запрос на удаление — на странице{" "}
+                <Link href="/data-deletion" className="text-blue-600 hover:underline">
+                  удаления данных
+                </Link>
+                .
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                3. How We Use Your Information
-              </h2>
-              <p className="text-slate-600 mb-2">We use your information to:</p>
-              <ul className="list-disc list-inside text-slate-600 space-y-1 ml-4">
-                <li>Authenticate and identify you in our system</li>
-                <li>Manage your volunteer shifts and schedule</li>
-                <li>Provide you with volunteer opportunities</li>
-                <li>Improve our services and user experience</li>
-                <li>
-                  Communicate with you about your volunteer activities
-                </li>
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                4. Data Sharing
-              </h2>
+              <h2 className="text-xl font-semibold text-slate-900 mb-3">7. Хранение</h2>
               <p className="text-slate-600">
-                We do not sell, trade, or rent your personal information to
-                third parties. We may share your information with:
+                Данные хранятся, пока нужны для работы сервиса. После удаления аккаунта персональные данные удаляются
+                или обезличиваются в течение 30 дней.
               </p>
-              <ul className="list-disc list-inside text-slate-600 space-y-1 ml-4">
-                <li>
-                  Service providers who assist us in operating our application
-                  (e.g., Supabase for authentication and database services)
-                </li>
-                <li>
-                  Organizations where you volunteer, but only information
-                  necessary for coordinating your volunteer activities
-                </li>
-              </ul>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                5. Data Security
-              </h2>
+              <h2 className="text-xl font-semibold text-slate-900 mb-3">8. Сторонние сервисы</h2>
               <p className="text-slate-600">
-                We implement appropriate security measures to protect your
-                personal information. However, no method of transmission over
-                the Internet is 100% secure, and we cannot guarantee absolute
-                security.
+                При входе через Google действует политика Google. Остальная обработка выполняется на инфраструктуре,
+                настроенной администратором организации.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                6. Your Rights
-              </h2>
-              <p className="text-slate-600 mb-2">You have the right to:</p>
-              <ul className="list-disc list-inside text-slate-600 space-y-1 ml-4">
-                <li>Access your personal data</li>
-                <li>Correct inaccurate data</li>
-                <li>Request deletion of your data</li>
-                <li>Withdraw consent for data processing</li>
-                <li>Export your data</li>
-              </ul>
-              <p className="text-slate-600 mt-3">
-                To exercise these rights, please visit our{" "}
-                <Link
-                  href="/data-deletion"
-                  className="text-blue-600 hover:underline"
-                >
-                  Data Deletion
-                </Link>{" "}
-                page.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                7. Data Retention
-              </h2>
+              <h2 className="text-xl font-semibold text-slate-900 mb-3">9. Дети</h2>
               <p className="text-slate-600">
-                We retain your personal information only for as long as
-                necessary to provide our services and fulfill the purposes
-                outlined in this policy. When you delete your account, we will
-                delete or anonymize your personal information within 30 days.
+                Сервис не предназначен для лиц младше 13 лет; мы сознательно не собираем их данные.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                8. Third-Party Services
-              </h2>
+              <h2 className="text-xl font-semibold text-slate-900 mb-3">10. Изменения</h2>
               <p className="text-slate-600">
-                Our application uses Facebook Login for authentication. Your use
-                of Facebook Login is governed by Facebook's Privacy Policy. We
-                do not control and are not responsible for Facebook's privacy
-                practices.
+                Политика может обновляться; актуальная версия всегда на этой странице с датой обновления.
               </p>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                9. Children's Privacy
-              </h2>
-              <p className="text-slate-600">
-                Our services are not directed to children under 13. We do not
-                knowingly collect personal information from children under 13.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                10. Changes to This Policy
-              </h2>
-              <p className="text-slate-600">
-                We may update this Privacy Policy from time to time. We will
-                notify you of any changes by posting the new policy on this page
-                and updating the "Last updated" date.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
-                11. Contact Us
-              </h2>
-              <p className="text-slate-600">
-                If you have any questions about this Privacy Policy, please
-                contact us at: privacy@volunty.app
-              </p>
+              <h2 className="text-xl font-semibold text-slate-900 mb-3">11. Контакты</h2>
+              <p className="text-slate-600">Вопросы: privacy@volunty.app</p>
             </section>
           </div>
         </div>

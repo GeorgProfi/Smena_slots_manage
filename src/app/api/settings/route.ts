@@ -1,49 +1,51 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-
-function getAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  return createAdminClient(url, key);
-}
+import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 export async function GET() {
   try {
-    const admin = getAdmin();
+    const admin = createAdminClient();
     const { data, error } = await admin
       .from("organization_settings")
       .select("key, value");
-    
+
     if (error) throw error;
-    
+
     const settings = Object.fromEntries(
-      (data || []).map((s: any) => [s.key, s.value])
+      (data || []).map((s: { key: string; value: string }) => [s.key, s.value])
     );
-    
+
     return NextResponse.json(settings);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message ?? "Failed to fetch settings" }, { status: 500 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to fetch settings";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
 export async function PUT(request: Request) {
   try {
+    const auth = await requireAdmin();
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     const body = await request.json();
     const { key, value } = body;
-    
+
     if (!key || value === undefined) {
       return NextResponse.json({ error: "Missing key or value" }, { status: 400 });
     }
-    
-    const admin = getAdmin();
+
+    const admin = createAdminClient();
     const { error } = await admin
       .from("organization_settings")
-      .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
-    
+      .upsert({ key, value: String(value), updated_at: new Date().toISOString() }, { onConflict: "key" });
+
     if (error) throw error;
-    
+
     return NextResponse.json({ success: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message ?? "Failed to update setting" }, { status: 500 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to update setting";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

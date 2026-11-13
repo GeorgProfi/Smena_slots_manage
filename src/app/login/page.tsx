@@ -1,18 +1,22 @@
 "use client";
 
 import { useAuth } from "@/components/providers/AuthProvider";
+import AuthShell from "@/components/auth/AuthShell";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 
 function LoginContent() {
-  const { user, isLoading, signInWithGoogle } = useAuth();
+  const { user, isLoading, signInWithEmail, signInWithGoogle, googleAuthEnabled } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
-  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const redirectTo = searchParams.get("redirectTo") || "/";
+  const confirmed = searchParams.get("confirmed") === "1";
 
   useEffect(() => {
     if (user && !isLoading) {
@@ -20,123 +24,143 @@ function LoginContent() {
     }
   }, [user, isLoading, router, redirectTo]);
 
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setError(null);
+      setIsSubmitting(true);
+      await signInWithEmail(email, password);
+      router.push(redirectTo);
+    } catch {
+      setError("Неверный email или пароль. Попробуйте снова или сбросьте пароль.");
+      setIsSubmitting(false);
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     try {
       setError(null);
-      setIsSigningIn(true);
+      setIsSubmitting(true);
       await signInWithGoogle(redirectTo);
-    } catch (err) {
-      setError("Failed to sign in with Google. Please try again.");
-      setIsSigningIn(false);
+    } catch {
+      setError("Не удалось войти через Google. Попробуйте ещё раз.");
+      setIsSubmitting(false);
     }
   };
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 dark:border-white"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 dark:border-white" />
       </div>
     );
   }
 
   if (user) {
-    return null; // Will redirect via useEffect
+    return null;
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <Link href="/" className="inline-block">
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white">VolunTy</h1>
-          </Link>
-          <p className="mt-3 text-slate-600 dark:text-slate-400">
-            Sign in to manage your volunteer schedule
-          </p>
+    <AuthShell title="С возвращением" subtitle="Войдите, чтобы управлять своим расписанием смен">
+      {confirmed && (
+        <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4 text-sm text-green-800 dark:text-green-200">
+          Email подтверждён. Теперь можно войти.
         </div>
+      )}
 
-        {/* Auth Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 space-y-6">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-              Welcome back
-            </h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Choose your preferred sign-in method
-            </p>
-          </div>
+      {error && (
+        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4 text-sm text-red-600 dark:text-red-300">
+          {error}
+        </div>
+      )}
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-600">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {/* Google Sign In */}
-            <button
-              onClick={handleGoogleSignIn}
-              disabled={isSigningIn}
-              className="w-full flex items-center justify-center gap-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      <form onSubmit={handleEmailSignIn} className="space-y-4">
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white"
+          />
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Пароль
+            </label>
+            <Link
+              href="/forgot-password"
+              className="text-xs text-slate-600 dark:text-slate-400 hover:underline"
             >
-              <svg
-                className="h-5 w-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              {isSigningIn ? "Signing in..." : "Continue with Google"}
-            </button>
+              Забыли пароль?
+            </Link>
           </div>
+          <input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm text-slate-900 dark:text-white"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full rounded-lg bg-slate-900 dark:bg-white px-4 py-3 text-sm font-medium text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 disabled:opacity-50"
+        >
+          {isSubmitting ? "Вход…" : "Войти"}
+        </button>
+      </form>
 
+      {googleAuthEnabled && (
+        <>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+              <div className="w-full border-t border-slate-200 dark:border-slate-700" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="bg-white dark:bg-slate-900 px-2 text-slate-500 dark:text-slate-400">
-                Secure authentication
-              </span>
+              <span className="bg-white dark:bg-slate-900 px-2 text-slate-500 dark:text-slate-400">или</span>
             </div>
           </div>
 
-          <p className="text-center text-xs text-slate-500 dark:text-slate-400">
-            By signing in, you agree to our{" "}
-            <a href="#" className="text-slate-700 dark:text-slate-300 hover:underline">
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a href="#" className="text-slate-700 dark:text-slate-300 hover:underline">
-              Privacy Policy
-            </a>
-          </p>
-        </div>
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={isSubmitting}
+            className="w-full flex items-center justify-center gap-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
+          >
+            Войти через Google
+          </button>
+        </>
+      )}
 
-        <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-          <Link href="/" className="text-slate-700 dark:text-slate-300 hover:underline">
-            ← Back to home
-          </Link>
-        </p>
-      </div>
-    </main>
+      <p className="text-center text-sm text-slate-600 dark:text-slate-400">
+        Нет аккаунта?{" "}
+        <Link href="/signup" className="text-slate-900 dark:text-white font-medium hover:underline">
+          Зарегистрироваться
+        </Link>
+      </p>
+
+      <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+        Входя в систему, вы соглашаетесь с{" "}
+        <Link href="/terms" className="hover:underline">
+          условиями использования
+        </Link>{" "}
+        и{" "}
+        <Link href="/privacy" className="hover:underline">
+          политикой конфиденциальности
+        </Link>
+        .
+      </p>
+    </AuthShell>
   );
 }
 
@@ -145,7 +169,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-slate-50">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900" />
         </div>
       }
     >

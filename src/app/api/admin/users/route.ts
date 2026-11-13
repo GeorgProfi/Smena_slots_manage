@@ -1,31 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
-
-function adminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-async function requireAdmin() {
-  const supabase = createServerSupabaseClient();
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !userData.user) {
-    return { ok: false, status: 401, error: "Unauthorized", user: null, role: null } as const;
-  }
-  const user = userData.user;
-  const { data: profile, error: profErr } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profErr || !profile || !["admin", "super_admin"].includes(profile.role)) {
-    return { ok: false, status: 403, error: "Forbidden", user: null, role: null } as const;
-  }
-  return { ok: true, user, role: profile.role } as const;
-}
+import { createAdminClient } from "@/lib/db/admin";
+import { asRows } from "@/lib/db/query";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 export async function GET() {
   try {
@@ -33,29 +9,32 @@ export async function GET() {
     if (!auth.ok) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-    const admin = adminClient();
-    
-    // Get profiles from database
-    const { data: profiles, error: profError } = await admin
+    const admin = createAdminClient();
+
+    const { data: profilesData, error: profError } = await admin
       .from("profiles")
       .select("id, full_name, role");
     if (profError) throw profError;
 
-    // Get email addresses from auth.users
+    const profiles = asRows<{ id: string; full_name: string; role: string }>(profilesData);
+
     const { data: authUsers, error: authError } = await admin.auth.admin.listUsers();
     if (authError) throw authError;
 
-    const emailMap = new Map(authUsers.users.map((u: any) => [u.id, u.email]));
+    const emailMap = new Map(
+      (authUsers?.users ?? []).map((u: { id: string; email: string }) => [u.id, u.email])
+    );
 
-    const mapped = (profiles ?? []).map((p: any) => ({
+    const mapped = profiles.map((p) => ({
       id: p.id,
       full_name: p.full_name,
       role: p.role,
       email: emailMap.get(p.id) ?? null,
     }));
     return NextResponse.json(mapped);
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message ?? "Failed to fetch users" }, { status: 500 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to fetch users";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -75,9 +54,8 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Invalid role" }, { status: 400 });
     }
 
-    const admin = adminClient();
+    const admin = createAdminClient();
 
-    // Fetch the target user's current role
     const { data: targetProfile, error: fetchErr } = await admin
       .from("profiles")
       .select("role")
@@ -87,17 +65,20 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Only super_admin can modify super_admin role or demote super_admin
     if (targetProfile.role === "super_admin" || role === "super_admin") {
       if (auth.role !== "super_admin") {
-        return NextResponse.json({ error: "Only super_admin can modify super_admin role" }, { status: 403 });
+        return NextResponse.json(
+          { error: "Only super_admin can modify super_admin role" },
+          { status: 403 }
+        );
       }
     }
 
     const { error } = await admin.from("profiles").update({ role }).eq("id", id);
     if (error) throw error;
     return NextResponse.json({ success: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message ?? "Failed to update role" }, { status: 500 });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to update role";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

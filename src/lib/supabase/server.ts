@@ -1,36 +1,25 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createAdminClient } from "@/lib/db/admin";
+import { destroySession, getAuthUserForApi, getSessionUser } from "@/lib/auth/session";
 
 export function createClient() {
-  const cookieStore = cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: "", ...options });
-          } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
+  return {
+    auth: {
+      getUser: getAuthUserForApi,
+      getSession: async () => {
+        const user = await getSessionUser();
+        return {
+          data: {
+            session: user
+              ? {
+                  user: { id: user.id, email: user.email, user_metadata: {} },
+                }
+              : null,
+          },
+        };
       },
-    }
-  );
+      signOut: destroySession,
+      exchangeCodeForSession: async () => ({ error: { message: "OAuth is not available" } }),
+    },
+    from: (table: string) => createAdminClient().from(table),
+  };
 }

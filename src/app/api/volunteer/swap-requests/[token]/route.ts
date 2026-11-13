@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/db/admin";
+import { query } from "@/lib/db/pool";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 
 function adminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return createAdminClient();
 }
 
 async function getUser() {
@@ -24,45 +22,50 @@ export async function GET(
     const admin = adminClient();
 
     // Fetch swap request by token
-    const { data: swapRequest, error: swapErr } = await admin
-      .from("swap_requests")
-      .select(
-        "id, status, created_at, requester_id, assignment_id, shift_assignments!inner(sub_shift_id, sub_shifts!inner(id, role_name, start_time, end_time, event_id, events!inner(id, title, start_time, end_time, location))), profiles!requester_id(full_name)"
-      )
-      .eq("share_token", params.token)
-      .eq("status", "open")
-      .single();
+    const { rows } = await query<{
+      id: string;
+      status: string;
+      created_at: string;
+      requester_name: string | null;
+      role_name: string;
+      sub_start: string;
+      sub_end: string;
+      event_title: string;
+      event_start: string;
+      event_end: string;
+      event_location: string | null;
+    }>(
+      `SELECT sr.id, sr.status, sr.created_at, p.full_name AS requester_name,
+        ss.role_name, ss.start_time AS sub_start, ss.end_time AS sub_end,
+        e.title AS event_title, e.start_time AS event_start, e.end_time AS event_end, e.location AS event_location
+       FROM swap_requests sr
+       JOIN shift_assignments sa ON sa.id = sr.assignment_id
+       JOIN sub_shifts ss ON ss.id = sa.sub_shift_id
+       JOIN events e ON e.id = ss.event_id
+       JOIN profiles p ON p.id = sr.requester_id
+       WHERE sr.share_token = $1 AND sr.status = 'open'
+       LIMIT 1`,
+      [params.token]
+    );
 
-    if (swapErr || !swapRequest) {
+    const swapRequest = rows[0];
+    if (!swapRequest) {
       return NextResponse.json(
         { error: "Swap request not found or expired" },
         { status: 404 }
       );
     }
 
-    const assignment = Array.isArray(swapRequest.shift_assignments) 
-      ? swapRequest.shift_assignments[0] 
-      : swapRequest.shift_assignments;
-    const subShift = Array.isArray(assignment?.sub_shifts)
-      ? assignment?.sub_shifts[0]
-      : assignment?.sub_shifts;
-    const event = Array.isArray(subShift?.events)
-      ? subShift?.events[0]
-      : subShift?.events;
-    const requester = Array.isArray(swapRequest.profiles)
-      ? swapRequest.profiles[0]
-      : swapRequest.profiles;
-
     return NextResponse.json({
       id: swapRequest.id,
       status: swapRequest.status,
       created_at: swapRequest.created_at,
-      requester_name: requester?.full_name ?? "Unknown",
-      role_name: subShift?.role_name ?? "",
-      start_time: subShift?.start_time ?? event?.start_time,
-      end_time: subShift?.end_time ?? event?.end_time,
-      event_title: event?.title ?? "",
-      event_location: event?.location ?? null,
+      requester_name: swapRequest.requester_name ?? "Unknown",
+      role_name: swapRequest.role_name,
+      start_time: swapRequest.sub_start ?? swapRequest.event_start,
+      end_time: swapRequest.sub_end ?? swapRequest.event_end,
+      event_title: swapRequest.event_title,
+      event_location: swapRequest.event_location,
     });
   } catch (e: any) {
     return NextResponse.json(

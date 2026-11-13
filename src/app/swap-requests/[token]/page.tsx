@@ -23,7 +23,7 @@ export default function SwapRequestPage({
         const res = await fetch(`/api/volunteer/swap-requests/${params.token}`);
         if (!res.ok) {
           const data = await res.json();
-          throw new Error(data.error || "Swap request not found");
+          throw new Error(data.error || "Заявка не найдена");
         }
         const data = await res.json();
         setSwapRequest(data);
@@ -38,12 +38,12 @@ export default function SwapRequestPage({
 
   const handleAction = async (action: "accept" | "decline") => {
     if (!user) {
-      alert("Please log in to respond to swap requests");
+      alert("Войдите, чтобы ответить на заявку");
       return;
     }
 
     if (swapRequest?.requester_name && user.id === swapRequest.requester_id) {
-      alert("You cannot accept your own swap request");
+      alert("Нельзя принять собственную заявку");
       return;
     }
 
@@ -57,7 +57,7 @@ export default function SwapRequestPage({
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed to process request");
+        throw new Error(data.error || "Не удалось обработать заявку");
       }
 
       setResult(action === "accept" ? "accepted" : "declined");
@@ -96,13 +96,13 @@ export default function SwapRequestPage({
             <div className="flex items-center justify-center mb-4">
               <AlertCircle className="h-12 w-12 text-red-600" />
             </div>
-            <h2 className="text-2xl font-bold text-red-900 mb-2">Request Not Found</h2>
+            <h2 className="text-2xl font-bold text-red-900 mb-2">Заявка не найдена</h2>
             <p className="text-red-700 mb-6">{error}</p>
             <Link
               href="/volunteer"
               className="inline-block w-full bg-red-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
             >
-              Back to Volunteer Portal
+              В кабинет курьера
             </Link>
           </div>
         </div>
@@ -119,8 +119,8 @@ export default function SwapRequestPage({
               <CheckCircle className="h-5 w-5 text-green-600" />
               <p className="text-green-800">
                 {result === "accepted"
-                  ? "Swap accepted! You've been assigned to this shift."
-                  : "Swap request declined."}
+                  ? "Обмен принят! Вы назначены на эту смену."
+                  : "Заявка отклонена."}
               </p>
             </div>
           </div>
@@ -131,10 +131,10 @@ export default function SwapRequestPage({
             <div>
               <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
                 <ArrowRightLeft className="h-8 w-8 text-blue-600" />
-                Swap Request
+                Заявка на обмен
               </h1>
               <p className="text-slate-600 mt-1">
-                {swapRequest?.requester_name} is looking to swap their shift
+                {swapRequest?.requester_name} хочет обменять смену
               </p>
             </div>
           </div>
@@ -142,28 +142,28 @@ export default function SwapRequestPage({
           <div className="space-y-6">
             {/* Shift Details */}
             <div className="border-t border-slate-200 pt-6">
-              <h2 className="font-semibold text-slate-900 mb-4">Shift Details</h2>
+              <h2 className="font-semibold text-slate-900 mb-4">Детали смены</h2>
               <div className="space-y-3 text-slate-600">
                 <div className="flex justify-between items-start">
-                  <span>Event:</span>
+                  <span>Событие:</span>
                   <span className="font-medium text-slate-900">
                     {swapRequest?.event_title}
                   </span>
                 </div>
                 <div className="flex justify-between items-start">
-                  <span>Role:</span>
+                  <span>Роль:</span>
                   <span className="font-medium text-slate-900">
                     {swapRequest?.role_name}
                   </span>
                 </div>
                 <div className="flex justify-between items-start">
-                  <span>Date:</span>
+                  <span>Дата:</span>
                   <span className="font-medium text-slate-900">
                     {new Date(swapRequest?.start_time).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-start">
-                  <span>Time:</span>
+                  <span>Время:</span>
                   <span className="font-medium text-slate-900">
                     {new Date(swapRequest?.start_time).toLocaleTimeString(
                       "en-US",
@@ -183,7 +183,7 @@ export default function SwapRequestPage({
                 </div>
                 {swapRequest?.event_location && (
                   <div className="flex justify-between items-start">
-                    <span>Location:</span>
+                    <span>Место:</span>
                     <span className="font-medium text-slate-900">
                       {swapRequest.event_location}
                     </span>
@@ -196,13 +196,13 @@ export default function SwapRequestPage({
             {!user && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-700">
-                  Please log in to accept or decline this swap request.
+                  Войдите, чтобы принять или отклонить заявку.
                 </p>
                 <Link
                   href="/login?redirectTo=/volunteer"
                   className="mt-3 inline-block w-full text-center bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
                 >
-                  Log In
+                  Войти
                 </Link>
               </div>
             )}
@@ -214,14 +214,14 @@ export default function SwapRequestPage({
                   disabled={processing}
                   className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
                 >
-                  {processing ? "Processing..." : "Accept Swap"}
+                  {processing ? "Обработка…" : "Принять обмен"}
                 </button>
                 <button
                   onClick={() => handleAction("decline")}
                   disabled={processing}
                   className="flex-1 border border-slate-300 text-slate-700 px-6 py-3 rounded-lg font-medium hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {processing ? "Processing..." : "Decline"}
+                  {processing ? "Обработка…" : "Отклонить"}
                 </button>
               </div>
             )}
@@ -229,7 +229,7 @@ export default function SwapRequestPage({
             {user && swapRequest?.status !== "open" && (
               <div className="bg-slate-100 rounded-lg p-4">
                 <p className="text-slate-700 font-medium text-center">
-                  This swap request is no longer available
+                  Эта заявка больше недоступна
                 </p>
               </div>
             )}
@@ -240,7 +240,7 @@ export default function SwapRequestPage({
                 href="/volunteer"
                 className="text-blue-600 hover:text-blue-700 font-medium"
               >
-                ← Back to Volunteer Portal
+                ← В кабинет курьера
               </Link>
             </div>
           </div>

@@ -1,49 +1,49 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/db/admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
+import { asRows } from "@/lib/db/query";
 
 function getAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  return createAdminClient(url, key);
-}
-
-async function requireAdmin() {
-  const supabase = createServerSupabaseClient();
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !userData.user) {
-    return { ok: false, status: 401, error: "Unauthorized" } as const;
-  }
-  const user = userData.user;
-  const { data: profile, error: profErr } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profErr || !profile || !["admin", "super_admin"].includes(profile.role)) {
-    return { ok: false, status: 403, error: "Forbidden" } as const;
-  }
-  return { ok: true } as const;
+  return createAdminClient();
 }
 
 export async function GET() {
   try {
     const admin = getAdmin();
-    const { data: events, error: evErr } = await admin
+    const { data: eventsRaw, error: evErr } = await admin
       .from("events")
-      .select("id,title,start_time,end_time,location,sub_shifts(id,role_name,start_time,end_time,capacity)")
+      .select("id,title,start_time,end_time,location")
       .order("start_time", { ascending: true });
     if (evErr) throw evErr;
 
-    const eventIds = (events ?? []).map((e: any) => e.id);
+    const events = eventsRaw ?? [];
+    const eventIds = events.map((e: { id: string }) => e.id);
+    const subShiftsByEvent: Record<string, unknown[]> = {};
+    if (eventIds.length) {
+      const { data: allSubShifts } = await admin
+        .from("sub_shifts")
+        .select("id,role_name,start_time,end_time,capacity,event_id")
+        .in("event_id", eventIds);
+      (allSubShifts ?? []).forEach((s: { event_id: string }) => {
+        subShiftsByEvent[s.event_id] ??= [];
+        subShiftsByEvent[s.event_id].push(s);
+      });
+    }
+    const eventsWithSubs = events.map((e: { id: string }) => ({
+      ...e,
+      sub_shifts: subShiftsByEvent[e.id] ?? [],
+    }));
+
+    const eventIds2 = eventsWithSubs.map((e: { id: string }) => e.id);
     let capacities: Record<string, number> = {};
     let filledByEvent: Record<string, number> = {};
     let filledBySubShift: Record<string, number> = {};
 
-    if (eventIds.length) {
+    if (eventIds2.length) {
       const { data: subShifts } = await admin
         .from("sub_shifts")
-        .select("id,event_id,capacity").in("event_id", eventIds);
+        .select("id,event_id,capacity")
+        .in("event_id", eventIds2);
       const byEvent: Record<string, { subShiftIds: string[]; capacity: number }> = {};
       (subShifts ?? []).forEach((s: any) => {
         const ev = s.event_id;
@@ -70,7 +70,7 @@ export async function GET() {
       }
     }
 
-    const payload = (events ?? []).map((e: any) => {
+    const payload = eventsWithSubs.map((e: { id: string; sub_shifts?: unknown[] }) => {
       const subShifts = (e.sub_shifts ?? [])
         .sort((a: any, b: any) => {
           // Sort by start_time, then by end_time (for consistent ordering of overlapping shifts)
@@ -173,14 +173,22 @@ export async function PUT(request: Request) {
     // Only re-process sub_shifts if they were explicitly provided in the request
     if (Array.isArray(sub_shifts)) {
       // Fetch existing sub_shifts
-      const { data: existingSubShifts, error: fetchErr } = await admin
+      const { data: existingSubShiftsData, error: fetchErr } = await admin
         .from("sub_shifts")
         .select("id,role_name,start_time,end_time,capacity")
         .eq("event_id", id);
       if (fetchErr) throw fetchErr;
 
-      const existingById = new Map<string, any>();
-      (existingSubShifts ?? []).forEach((s) => existingById.set(s.id, s));
+      const existingSubShifts = asRows<{
+        id: string;
+        role_name: string;
+        start_time: string;
+        end_time: string;
+        capacity: number;
+      }>(existingSubShiftsData);
+
+      const existingById = new Map<string, (typeof existingSubShifts)[number]>();
+      existingSubShifts.forEach((s) => existingById.set(s.id, s));
 
       const payloadIds = new Set<string>();
 
@@ -203,7 +211,7 @@ export async function PUT(request: Request) {
 
       // For items without id: try matching by role/time, else insert new
       const existingByKey = new Map<string, any>();
-      (existingSubShifts ?? []).forEach((s) => {
+      existingSubShifts.forEach((s) => {
         existingByKey.set(`${s.role_name}|${s.start_time}|${s.end_time}`, s);
       });
 
@@ -239,7 +247,7 @@ export async function PUT(request: Request) {
       }
 
       // Determine deletions: existing ids not present in payloadIds
-      const idsToDelete = (existingSubShifts ?? [])
+      const idsToDelete = existingSubShifts
         .map((s) => s.id)
         .filter((eid) => !payloadIds.has(eid));
 

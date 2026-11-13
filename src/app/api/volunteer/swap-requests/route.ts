@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/db/admin";
+import { query } from "@/lib/db/pool";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import crypto from "crypto";
 import webpush from "web-push";
 
 function adminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return createAdminClient();
 }
 
 async function getUser() {
@@ -25,39 +23,46 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const admin = adminClient();
+    const { rows: requests } = await query<{
+      id: string;
+      status: string;
+      created_at: string;
+      share_token: string;
+      requester_id: string;
+      event_id: string;
+      role_name: string;
+      sub_start: string;
+      sub_end: string;
+      event_title: string;
+      event_start: string;
+      event_end: string;
+      event_location: string | null;
+    }>(
+      `SELECT sr.id, sr.status, sr.created_at, sr.share_token, sr.requester_id,
+        e.id AS event_id, ss.role_name, ss.start_time AS sub_start, ss.end_time AS sub_end,
+        e.title AS event_title, e.start_time AS event_start, e.end_time AS event_end, e.location AS event_location
+       FROM swap_requests sr
+       JOIN shift_assignments sa ON sa.id = sr.assignment_id
+       JOIN sub_shifts ss ON ss.id = sa.sub_shift_id
+       JOIN events e ON e.id = ss.event_id
+       WHERE sr.status IN ('open', 'accepted')`
+    );
 
-    // Get all open/accepted swap requests (including other users) for timeline context
-    const { data: requests, error: reqErr } = await admin
-      .from("swap_requests")
-      .select(
-        "id,status,created_at,share_token,assignment_id,requester_id,shift_assignments!inner(sub_shift_id,sub_shifts!inner(id,role_name,start_time,end_time,event_id,events!inner(id,title,start_time,end_time,location)))"
-      )
-      .in("status", ["open", "accepted"]);
-
-    if (reqErr) throw reqErr;
-
-    const result = (requests ?? []).map((r: any) => {
-      const assignment = r.shift_assignments;
-      const subShift = assignment?.sub_shifts;
-      const event = subShift?.events;
-
-      return {
-        id: r.id,
-        status: r.status,
-        created_at: r.created_at,
-        share_token: r.share_token,
-        is_mine: r.requester_id === user.id,
-        requester_id: r.requester_id,
-        event_id: event?.id ?? null,
-        role_name: subShift?.role_name ?? "",
-        start_time: subShift?.start_time ?? event?.start_time,
-        end_time: subShift?.end_time ?? event?.end_time,
-        event_title: event?.title ?? "",
-        event_location: event?.location ?? null,
-        share_link: `/swap-requests/${r.share_token}`,
-      };
-    });
+    const result = requests.map((r) => ({
+      id: r.id,
+      status: r.status,
+      created_at: r.created_at,
+      share_token: r.share_token,
+      is_mine: r.requester_id === user.id,
+      requester_id: r.requester_id,
+      event_id: r.event_id,
+      role_name: r.role_name,
+      start_time: r.sub_start ?? r.event_start,
+      end_time: r.sub_end ?? r.event_end,
+      event_title: r.event_title,
+      event_location: r.event_location,
+      share_link: `/swap-requests/${r.share_token}`,
+    }));
 
     return NextResponse.json(result);
   } catch (e: any) {
@@ -146,18 +151,21 @@ export async function POST(request: Request) {
 
     if (updateErr) throw updateErr;
 
-    // Fetch shift details for notification payload
-    const { data: shiftDetail } = await admin
-      .from("shift_assignments")
-      .select(
-        "id, sub_shifts(role_name, start_time, events(title, start_time))"
-      )
-      .eq("id", assignment_id)
-      .single();
-
-    const subShift = Array.isArray(shiftDetail?.sub_shifts)
-      ? shiftDetail?.sub_shifts[0]
-      : shiftDetail?.sub_shifts;
+    const { rows: shiftRows } = await query<{
+      role_name: string;
+      start_time: string;
+      event_title: string;
+      event_start: string;
+    }>(
+      `SELECT ss.role_name, COALESCE(ss.start_time, e.start_time) AS start_time,
+              e.title AS event_title, e.start_time AS event_start
+       FROM shift_assignments sa
+       JOIN sub_shifts ss ON ss.id = sa.sub_shift_id
+       JOIN events e ON e.id = ss.event_id
+       WHERE sa.id = $1`,
+      [assignment_id]
+    );
+    const subShift = shiftRows[0];
 
     // Load push subscriptions (exclude requester)
     const { data: subscriptions } = await admin

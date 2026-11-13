@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: volunty-postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    env_file:
+      - docker/app.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-volunty}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-volunty}
+      POSTGRES_DB: ${POSTGRES_DB:-volunty}
+    volumes:
+      - volunty_pg_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-volunty} -d ${POSTGRES_DB:-volunty}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+    image: volunty-app:local
+    container_name: volunty-app
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    env_file:
+      - docker/app.env
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-volunty}:${POSTGRES_PASSWORD:-volunty}@postgres:5432/${POSTGRES_DB:-volunty}
+      POSTGRES_HOST: postgres
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  volunty_pg_data:

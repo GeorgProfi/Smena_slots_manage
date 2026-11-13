@@ -19,6 +19,12 @@ docker compose up --build
 
 Переменные по умолчанию в [`docker/app.env`](docker/app.env). Приложение: [http://localhost:3000](http://localhost:3000). Схема БД — `docker/postgres/init/` при первом старте Postgres.
 
+### Продакшен + HTTPS (smenaslots.duckdns.org)
+
+1. `cp docker/app.prod.env.example .env` — задайте секреты и `NEXT_PUBLIC_APP_URL=https://smenaslots.duckdns.org`
+2. `docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d`
+3. nginx + certbot на сервере — [`deploy/nginx/README.md`](deploy/nginx/README.md)
+
 ### Вариант B: только Postgres в Docker, Next на хосте
 
 1. **Start database**

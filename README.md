@@ -14,7 +14,7 @@
 ### Вариант A: всё в Docker
 
 ```bash
-docker compose up --build
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 ```
 
 Переменные по умолчанию в [`docker/app.env`](docker/app.env). Приложение: [http://localhost:3000](http://localhost:3000). Схема БД — `docker/postgres/init/` при первом старте Postgres.

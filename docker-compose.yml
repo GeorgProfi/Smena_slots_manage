@@ -29,8 +29,7 @@ services:
     image: volunty-app:local
     container_name: volunty-app
     restart: unless-stopped
-    ports:
-      - "${APP_PORT:-3000}:3000"
+    # Порт на хост: docker-compose.dev.yml (локально) или docker-compose.prod.yml (127.0.0.1)
     env_file:
       - docker/app.env
       - path: .env

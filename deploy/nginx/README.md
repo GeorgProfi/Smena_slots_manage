@@ -17,11 +17,13 @@ cp docker/app.prod.env.example .env
 # задайте SESSION_SECRET и POSTGRES_PASSWORD
 ```
 
-Запуск с прод-привязкой портов (приложение недоступно снаружи по :3000):
+Запуск с прод-привязкой портов (приложение только на `127.0.0.1:3000`, не снаружи):
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
+
+Не добавляйте `docker-compose.dev.yml` вместе с `prod` — будет двойной проброс :3000 и ошибка `address already in use`.
 
 Приложение: `http://127.0.0.1:3000`. Postgres по умолчанию **только внутри Docker**. Локально: `docker exec -it volunty-postgres psql -U volunty -d volunty`.
 

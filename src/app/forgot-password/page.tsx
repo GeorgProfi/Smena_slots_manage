@@ -20,22 +20,22 @@ export default function ForgotPasswordPage() {
       await resetPasswordForEmail(email);
       setSent(true);
     } catch {
-      setError("Could not send reset email. Check the address and try again.");
+      setError("Не удалось отправить письмо. Проверьте адрес и попробуйте снова.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <AuthShell title="Reset your password" subtitle="We'll email you a secure reset link">
+    <AuthShell title="Сброс пароля" subtitle="Мы отправим на email безопасную ссылку для сброса">
       {sent ? (
         <div className="space-y-4 text-center text-sm text-slate-600 dark:text-slate-400">
           <p>
-            If an account exists for <strong className="text-slate-900 dark:text-white">{email}</strong>, you
-            will receive an email shortly.
+            Если для <strong className="text-slate-900 dark:text-white">{email}</strong> есть аккаунт, письмо придёт в
+            ближайшее время.
           </p>
           <Link href="/login" className="inline-block font-medium text-slate-900 dark:text-white hover:underline">
-            Back to sign in
+            Вернуться ко входу
           </Link>
         </div>
       ) : (
@@ -64,12 +64,12 @@ export default function ForgotPasswordPage() {
               disabled={isSubmitting}
               className="w-full rounded-lg bg-slate-900 dark:bg-white px-4 py-3 text-sm font-medium text-white dark:text-slate-900 disabled:opacity-50"
             >
-              {isSubmitting ? "Sending..." : "Send reset link"}
+              {isSubmitting ? "Отправка…" : "Отправить ссылку"}
             </button>
           </form>
           <p className="text-center text-sm">
             <Link href="/login" className="text-slate-600 dark:text-slate-400 hover:underline">
-              Back to sign in
+              Вернуться ко входу
             </Link>
           </p>
         </>

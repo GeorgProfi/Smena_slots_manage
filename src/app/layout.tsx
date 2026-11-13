@@ -4,13 +4,14 @@ import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import UserMenu from "@/components/UserMenu";
 import Link from "next/link";
-import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/auth/session";
+import { createAdminClient } from "@/lib/db/admin";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "VolunTy",
-  description: "Volunteer Management Platform",
+  description: "Платформа управления сменами курьеров",
 };
 
 export default async function RootLayout({
@@ -18,34 +19,48 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = createServerSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
+  const sessionUser = await getSessionUser();
   let role: string | null = null;
+  let initialUser = null;
 
-  if (session?.user) {
-    const { data, error } = await supabase
+  if (sessionUser) {
+    initialUser = {
+      id: sessionUser.id,
+      email: sessionUser.email,
+      user_metadata: {},
+    };
+    const admin = createAdminClient();
+    const { data } = await admin
       .from("profiles")
-      .select("role")
-      .eq("id", session.user.id)
+      .select("role, full_name")
+      .eq("id", sessionUser.id)
       .single();
-
-    if (!error) {
-      role = data?.role ?? null;
+    role = (data?.role as string) ?? null;
+    if (data?.full_name) {
+      initialUser = {
+        ...initialUser,
+        user_metadata: { full_name: data.full_name as string },
+      };
     }
   }
 
   return (
-    <html lang="en">
+    <html lang="ru">
       <body className={inter.className}>
-        <AuthProvider initialSession={session} initialRole={role}>
+        <AuthProvider initialUser={initialUser} initialRole={role}>
           <header className="border-b border-slate-200 bg-white sticky top-0 z-40">
             <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between px-4 w-full">
-              <Link href="/" className="text-base sm:text-lg font-bold text-slate-900 hover:text-slate-600 transition-colors flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg hover:bg-slate-100 flex-shrink-0">
+              <Link
+                href="/"
+                className="text-base sm:text-lg font-bold text-slate-900 hover:text-slate-600 transition-colors flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg hover:bg-slate-100 flex-shrink-0"
+              >
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  />
                 </svg>
                 <span className="hidden sm:inline">VolunTy</span>
               </Link>

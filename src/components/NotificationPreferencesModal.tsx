@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
 const COMMON_PRESETS = [
-  { label: "15 minutes", minutes: 15 },
-  { label: "30 minutes", minutes: 30 },
-  { label: "1 hour", minutes: 60 },
-  { label: "2 hours", minutes: 120 },
-  { label: "24 hours", minutes: 1440 },
+  { label: "15 мин", minutes: 15 },
+  { label: "30 мин", minutes: 30 },
+  { label: "1 ч", minutes: 60 },
+  { label: "2 ч", minutes: 120 },
+  { label: "24 ч", minutes: 1440 },
 ];
 
 const TIMEZONES = [
@@ -49,7 +49,7 @@ function ModalContent({ onClose }: { onClose?: () => void }) {
       setEnabled(data.enabled !== false);
     } catch (error) {
       console.error("Error loading preferences:", error);
-      setMessage({ type: "error", text: "Failed to load preferences" });
+      setMessage({ type: "error", text: "Не удалось загрузить настройки" });
     } finally {
       setLoading(false);
     }
@@ -70,14 +70,14 @@ function ModalContent({ onClose }: { onClose?: () => void }) {
 
       if (!response.ok) throw new Error("Failed to save preferences");
 
-      setMessage({ type: "success", text: "Preferences saved!" });
+      setMessage({ type: "success", text: "Настройки сохранены!" });
       setTimeout(() => {
         setMessage(null);
         onClose?.();
       }, 1500);
     } catch (error) {
       console.error("Error saving preferences:", error);
-      setMessage({ type: "error", text: "Failed to save preferences" });
+      setMessage({ type: "error", text: "Не удалось сохранить настройки" });
     } finally {
       setSaving(false);
     }
@@ -87,7 +87,7 @@ function ModalContent({ onClose }: { onClose?: () => void }) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-          <p className="text-gray-600">Loading preferences...</p>
+          <p className="text-gray-600">Загрузка…</p>
         </div>
       </div>
     );
@@ -96,7 +96,7 @@ function ModalContent({ onClose }: { onClose?: () => void }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-6">Notification Preferences</h2>
+        <h2 className="text-2xl font-bold mb-6">Настройки уведомлений</h2>
 
         {/* Enable/Disable Toggle */}
         <div className="mb-6">
@@ -107,7 +107,7 @@ function ModalContent({ onClose }: { onClose?: () => void }) {
               onChange={(e) => setEnabled(e.target.checked)}
               className="w-5 h-5 rounded"
             />
-            <span className="text-gray-700 font-medium">Enable notifications</span>
+            <span className="text-gray-700 font-medium">Включить уведомления</span>
           </label>
         </div>
 
@@ -116,7 +116,7 @@ function ModalContent({ onClose }: { onClose?: () => void }) {
             {/* Reminder Minutes */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Remind me before shift
+                Напомнить до смены
               </label>
 
               {/* Preset buttons */}
@@ -146,17 +146,17 @@ function ModalContent({ onClose }: { onClose?: () => void }) {
                   onChange={(e) => setReminderMinutes(Math.max(1, parseInt(e.target.value) || 1))}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <span className="text-gray-600 text-sm">minutes</span>
+                <span className="text-gray-600 text-sm">мин</span>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                Max 10,080 minutes (7 days). Custom values override presets.
+                До 10 080 мин (7 дней). Своё значение перекрывает пресеты.
               </p>
             </div>
 
             {/* Timezone */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Your Timezone
+                Часовой пояс
               </label>
               <select
                 value={timezone}
@@ -170,7 +170,7 @@ function ModalContent({ onClose }: { onClose?: () => void }) {
                 ))}
               </select>
               <p className="text-xs text-gray-500 mt-2">
-                Ensures notifications arrive at the right time for you.
+                Уведомления придут в нужное для вас время.
               </p>
             </div>
           </>
@@ -195,14 +195,14 @@ function ModalContent({ onClose }: { onClose?: () => void }) {
             onClick={onClose}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 font-medium hover:bg-gray-50"
           >
-            Cancel
+            Отмена
           </button>
           <button
             onClick={savePreferences}
             disabled={saving}
             className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md font-medium hover:bg-blue-600 disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? "Сохранение…" : "Сохранить"}
           </button>
         </div>
       </div>

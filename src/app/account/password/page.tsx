@@ -30,7 +30,7 @@ export default function AccountPasswordPage() {
       return;
     }
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError("Пароли не совпадают.");
       return;
     }
     try {
@@ -41,7 +41,7 @@ export default function AccountPasswordPage() {
       setPassword("");
       setConfirm("");
     } catch {
-      setError("Could not update password.");
+      setError("Не удалось обновить пароль.");
     } finally {
       setIsSubmitting(false);
     }
@@ -56,18 +56,18 @@ export default function AccountPasswordPage() {
   }
 
   return (
-    <AuthShell title="Change password" subtitle="Set or update your email sign-in password">
+    <AuthShell title="Смена пароля" subtitle="Задайте или обновите пароль для входа по email">
       <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
-        Signed in as {user.email}. If you used Google before, set a password here or use{" "}
+        Вы вошли как {user.email}. Если раньше использовали Google, задайте пароль здесь или воспользуйтесь{" "}
         <Link href="/forgot-password" className="underline">
-          forgot password
+          сбросом пароля
         </Link>
         .
       </p>
 
       {success && (
         <div className="bg-green-50 dark:bg-green-950 border border-green-200 rounded-lg p-4 text-sm text-green-800 dark:text-green-200">
-          Password saved.
+          Пароль сохранён.
         </div>
       )}
 
@@ -80,7 +80,7 @@ export default function AccountPasswordPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-            New password
+            Новый пароль
           </label>
           <input
             id="password"
@@ -95,7 +95,7 @@ export default function AccountPasswordPage() {
         </div>
         <div>
           <label htmlFor="confirm" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-            Confirm password
+            Подтверждение пароля
           </label>
           <input
             id="confirm"
@@ -112,7 +112,7 @@ export default function AccountPasswordPage() {
           disabled={isSubmitting}
           className="w-full rounded-lg bg-slate-900 dark:bg-white px-4 py-3 text-sm font-medium text-white dark:text-slate-900 disabled:opacity-50"
         >
-          {isSubmitting ? "Saving..." : "Save password"}
+          {isSubmitting ? "Сохранение…" : "Сохранить пароль"}
         </button>
       </form>
     </AuthShell>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/db/admin";
 import { isSelfSignupAllowed } from "@/lib/auth/organization-settings";
 import { validatePassword } from "@/lib/auth/password";
 
@@ -34,13 +34,13 @@ export async function POST(request: Request) {
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password,
-      email_confirm: false,
+      email_confirm: true,
       user_metadata: fullName ? { full_name: fullName } : undefined,
     });
 
     if (error) {
       const message =
-        error.message.includes("already registered") || error.status === 422
+        error.message.includes("duplicate") || error.message.includes("unique")
           ? "An account with this email already exists. Try signing in or reset your password."
           : error.message;
       return NextResponse.json({ error: message }, { status: 400 });

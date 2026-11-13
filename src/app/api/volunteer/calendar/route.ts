@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/db/admin";
+import { query } from "@/lib/db/pool";
 
 function adminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return createAdminClient();
 }
 
 export async function GET(request: Request) {
@@ -21,10 +19,11 @@ export async function GET(request: Request) {
 
     // Fetch organization timezone from settings
     const { data: settings } = await admin
-      .from("settings")
-      .select("timezone")
+      .from("organization_settings")
+      .select("value")
+      .eq("key", "timezone")
       .single();
-    const timezone = settings?.timezone || "Europe/Brussels";
+    const timezone = (settings?.value as string) || "Europe/Brussels";
 
     // Lookup user by calendar token
     const { data: profile, error: profileErr } = await admin
@@ -38,16 +37,26 @@ export async function GET(request: Request) {
     }
 
     // Fetch user's assignments with event details
-    const { data: assignments, error: assignErr } = await admin
-      .from("shift_assignments")
-      .select(
-        "id,status,sub_shifts(id,role_name,start_time,end_time,events!sub_shifts_event_id_fkey(id,title,start_time,end_time,location))"
-      )
-      .eq("user_id", profile.id)
-      .eq("status", "confirmed")
-      .order("created_at", { ascending: false });
-
-    if (assignErr) throw assignErr;
+    const { rows: assignments } = await query<{
+      id: string;
+      role_name: string;
+      sub_start: string;
+      sub_end: string;
+      event_title: string;
+      event_start: string;
+      event_end: string;
+      event_location: string | null;
+    }>(
+      `SELECT sa.id, ss.role_name,
+        ss.start_time AS sub_start, ss.end_time AS sub_end,
+        e.title AS event_title, e.start_time AS event_start, e.end_time AS event_end, e.location AS event_location
+       FROM shift_assignments sa
+       JOIN sub_shifts ss ON ss.id = sa.sub_shift_id
+       JOIN events e ON e.id = ss.event_id
+       WHERE sa.user_id = $1 AND sa.status = 'confirmed'
+       ORDER BY sa.created_at DESC`,
+      [profile.id as string]
+    );
 
     // Build iCalendar format (RFC 5545)
     const now = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
@@ -61,21 +70,16 @@ export async function GET(request: Request) {
       return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
     };
 
-    (assignments ?? []).forEach((row: any) => {
-      const sub = row.sub_shifts;
-      const evt = sub?.events;
-
-      if (!evt || !sub) return;
-
-      const startTime = formatUTC(sub.start_time || evt.start_time || "");
-      const endTime = formatUTC(sub.end_time || evt.end_time || "");
+    assignments.forEach((row) => {
+      const startTime = formatUTC(row.sub_start || row.event_start || "");
+      const endTime = formatUTC(row.sub_end || row.event_end || "");
 
       if (!startTime || !endTime) return;
 
       const uid = `shift-${row.id}@volunty.local`;
-      const title = `${evt.title} - ${sub.role_name}`;
-      const description = `Role: ${sub.role_name}${evt.location ? `\nLocation: ${evt.location}` : ""}`;
-      const location = evt.location || "";
+      const title = `${row.event_title} - ${row.role_name}`;
+      const description = `Role: ${row.role_name}${row.event_location ? `\nLocation: ${row.event_location}` : ""}`;
+      const location = row.event_location || "";
 
       events.push(`BEGIN:VEVENT
 UID:${uid}

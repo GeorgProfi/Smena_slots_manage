@@ -3,29 +3,20 @@
 import AuthShell from "@/components/auth/AuthShell";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { MIN_PASSWORD_LENGTH, validatePassword } from "@/lib/auth/password";
-import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
-export default function ResetPasswordPage() {
-  const { updatePassword } = useAuth();
+function ResetPasswordContent() {
+  const { updatePassword, refreshAuth } = useAuth();
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [hasSession, setHasSession] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setHasSession(!!data.user);
-      setCheckingSession(false);
-    });
-  }, [supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,43 +26,43 @@ export default function ResetPasswordPage() {
       return;
     }
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError("Пароли не совпадают.");
       return;
     }
     try {
       setError(null);
       setIsSubmitting(true);
-      await updatePassword(password);
+      if (token) {
+        const res = await fetch("/api/auth/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "Не удалось сбросить пароль");
+        await refreshAuth();
+      } else {
+        await updatePassword(password);
+      }
       setDone(true);
-      setTimeout(() => router.push("/"), 2000);
-    } catch {
-      setError("Could not update password. Request a new reset link and try again.");
+      setTimeout(() => router.push("/"), 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Не удалось обновить пароль.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (checkingSession) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 dark:border-white" />
-      </div>
-    );
-  }
-
   return (
-    <AuthShell title="Set a new password" subtitle="Choose a strong password for your account">
-      {!hasSession ? (
-        <div className="space-y-4 text-sm text-slate-600 dark:text-slate-400 text-center">
-          <p>This link is invalid or has expired.</p>
-          <Link href="/forgot-password" className="font-medium text-slate-900 dark:text-white hover:underline">
-            Request a new reset link
-          </Link>
-        </div>
-      ) : done ? (
-        <p className="text-center text-sm text-green-700 dark:text-green-300">
-          Password updated. Redirecting…
+    <AuthShell title="Новый пароль" subtitle="Придумайте надёжный пароль для аккаунта">
+      {!token && (
+        <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
+          Уже вошли? Сохраните новый пароль ниже. Иначе перейдите по ссылке из письма (
+          <code className="text-xs">?token=...</code>).
         </p>
+      )}
+      {done ? (
+        <p className="text-center text-sm text-green-700 dark:text-green-300">Пароль обновлён. Перенаправление…</p>
       ) : (
         <>
           {error && (
@@ -82,7 +73,7 @@ export default function ResetPasswordPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                New password
+                Новый пароль
               </label>
               <input
                 id="password"
@@ -97,7 +88,7 @@ export default function ResetPasswordPage() {
             </div>
             <div>
               <label htmlFor="confirm" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Confirm password
+                Подтверждение пароля
               </label>
               <input
                 id="confirm"
@@ -114,11 +105,26 @@ export default function ResetPasswordPage() {
               disabled={isSubmitting}
               className="w-full rounded-lg bg-slate-900 dark:bg-white px-4 py-3 text-sm font-medium text-white dark:text-slate-900 disabled:opacity-50"
             >
-              {isSubmitting ? "Saving..." : "Update password"}
+              {isSubmitting ? "Сохранение…" : "Обновить пароль"}
             </button>
           </form>
+          {!token && (
+            <p className="text-center text-sm">
+              <Link href="/forgot-password" className="hover:underline">
+                Запросить ссылку для сброса
+              </Link>
+            </p>
+          )}
         </>
       )}
     </AuthShell>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Загрузка…</div>}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

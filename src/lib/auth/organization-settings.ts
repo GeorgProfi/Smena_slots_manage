@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/db/admin";
 
 export async function getOrganizationSetting(key: string): Promise<string | null> {
   const admin = createAdminClient();
@@ -10,7 +10,7 @@ export async function getOrganizationSetting(key: string): Promise<string | null
   if (error) {
     throw error;
   }
-  return data?.value ?? null;
+  return (data?.value as string | undefined) ?? null;
 }
 
 export async function isSelfSignupAllowed(): Promise<boolean> {

@@ -1,14 +1,16 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/client";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-const googleAuthEnabled = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_AUTH !== "false";
+type AuthUser = {
+  id: string;
+  email: string;
+  user_metadata?: { full_name?: string; name?: string; avatar_url?: string; picture?: string };
+};
 
 type AuthProviderProps = {
   children: React.ReactNode;
-  initialSession?: Session | null;
+  initialUser?: AuthUser | null;
   initialRole?: string | null;
 };
 
@@ -17,8 +19,8 @@ export type SignUpResult =
   | { status: "confirm_email" };
 
 type AuthContextType = {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
+  session: { user: AuthUser } | null;
   isLoading: boolean;
   role: string | null;
   googleAuthEnabled: boolean;
@@ -32,110 +34,67 @@ type AuthContextType = {
   updatePassword: (newPassword: string) => Promise<void>;
   signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshAuth: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({
   children,
-  initialSession = null,
+  initialUser = null,
   initialRole = undefined,
 }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(initialSession?.user ?? null);
-  const [session, setSession] = useState<Session | null>(initialSession);
-  const [isLoading, setIsLoading] = useState(!initialSession || initialRole === undefined);
+  const [user, setUser] = useState<AuthUser | null>(initialUser);
   const [role, setRole] = useState<string | null>(initialRole ?? null);
-  const supabase = useMemo(() => createClient(), []);
+  const [isLoading, setIsLoading] = useState(initialRole === undefined);
 
-  const loadRole = async (userId: string) => {
+  const refreshAuth = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .single();
-      if (error) {
-        console.error("Error loading role:", error.message);
+      const res = await fetch("/api/auth/me");
+      if (!res.ok) {
+        setUser(null);
         setRole(null);
         return;
       }
-      setRole(data?.role ?? null);
-    } catch (e: unknown) {
-      console.error("Exception loading role:", e);
-      setRole(null);
-    }
-  };
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const initialize = async () => {
-      try {
-        let activeSession = session;
-
-        if (!activeSession) {
-          const { data: fetchedData } = await supabase.auth.getUser();
-
-          if (!isMounted) return;
-
-          activeSession = fetchedData.user ? ({ user: fetchedData.user } as Session) : null;
-          setSession(activeSession);
-          setUser(fetchedData.user ?? null);
-        }
-
-        if (activeSession?.user && initialRole === undefined) {
-          await loadRole(activeSession.user.id);
-        }
-
-        if (!activeSession?.user) {
-          setRole(null);
-        }
-
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      } catch (e: unknown) {
-        console.error("AuthProvider initialization error:", e);
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    initialize();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
-      if (!isMounted) return;
-
-      setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-
-      if (nextSession?.user) {
-        await loadRole(nextSession.user.id);
+      const data = await res.json();
+      if (data.user) {
+        setUser({
+          id: data.user.id,
+          email: data.user.email,
+          user_metadata: { full_name: data.user.full_name },
+        });
+        setRole(data.user.role ?? null);
       } else {
+        setUser(null);
         setRole(null);
       }
-
+    } catch {
+      setUser(null);
+      setRole(null);
+    } finally {
       setIsLoading(false);
-    });
+    }
+  }, []);
 
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, [supabase, initialRole]);
+  useEffect(() => {
+    if (initialRole === undefined) {
+      refreshAuth();
+    } else {
+      setIsLoading(false);
+    }
+  }, [initialRole, refreshAuth]);
 
   const signInWithEmail = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     });
-    if (error) {
-      console.error("Error signing in with email:", error.message);
-      throw error;
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error ?? "Не удалось войти");
     }
+    await refreshAuth();
   };
 
   const signUpWithEmail = async (input: {
@@ -156,88 +115,69 @@ export function AuthProvider({
     if (!res.ok) {
       throw new Error(data.error ?? "Registration failed");
     }
-
     if (data.needsEmailConfirmation) {
       return { status: "confirm_email" as const };
     }
-
     await signInWithEmail(input.email, input.password);
     return { status: "signed_in" as const };
   };
 
   const resetPasswordForEmail = async (email: string) => {
-    const redirectTo = new URL("/auth/callback", window.location.origin);
-    redirectTo.searchParams.set("next", "/reset-password");
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-      redirectTo: redirectTo.toString(),
+    const res = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
     });
-    if (error) {
-      console.error("Error sending reset email:", error.message);
-      throw error;
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error ?? "Could not send reset email");
     }
   };
 
   const updatePassword = async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-      console.error("Error updating password:", error.message);
-      throw error;
+    const res = await fetch("/api/auth/password", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error ?? "Could not update password");
     }
   };
 
-  const signInWithGoogle = async (redirectTo?: string) => {
-    if (!googleAuthEnabled) {
-      throw new Error("Google sign-in is disabled");
-    }
-    const callbackUrl = new URL("/auth/callback", window.location.origin);
-    if (redirectTo) {
-      callbackUrl.searchParams.set("next", redirectTo);
-    }
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: callbackUrl.toString(),
-      },
-    });
-    if (error) {
-      console.error("Error signing in with Google:", error.message);
-      throw error;
-    }
+  const signInWithGoogle = async () => {
+    throw new Error("Google sign-in is not available with Docker Postgres");
   };
 
   const signOut = async () => {
-    try {
-      setUser(null);
-      setSession(null);
-      setRole(null);
-
-      const { error } = await supabase.auth.signOut({ scope: "local" });
-      if (error) {
-        console.error("Error signing out:", error.message);
-        throw error;
-      }
-    } catch (error) {
-      console.error("Sign out failed:", error);
-      throw error;
-    }
+    await fetch("/auth/signout", { method: "POST" });
+    setUser(null);
+    setRole(null);
   };
 
-  const value = {
-    user,
-    session,
-    isLoading,
-    role,
-    googleAuthEnabled,
-    signInWithEmail,
-    signUpWithEmail,
-    resetPasswordForEmail,
-    updatePassword,
-    signInWithGoogle,
-    signOut,
-  };
+  const session = user ? { user } : null;
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        isLoading,
+        role,
+        googleAuthEnabled: false,
+        signInWithEmail,
+        signUpWithEmail,
+        resetPasswordForEmail,
+        updatePassword,
+        signInWithGoogle,
+        signOut,
+        refreshAuth,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

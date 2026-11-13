@@ -32,7 +32,7 @@ function LoginContent() {
       await signInWithEmail(email, password);
       router.push(redirectTo);
     } catch {
-      setError("Invalid email or password. Try again or reset your password.");
+      setError("Неверный email или пароль. Попробуйте снова или сбросьте пароль.");
       setIsSubmitting(false);
     }
   };
@@ -43,7 +43,7 @@ function LoginContent() {
       setIsSubmitting(true);
       await signInWithGoogle(redirectTo);
     } catch {
-      setError("Failed to sign in with Google. Please try again.");
+      setError("Не удалось войти через Google. Попробуйте ещё раз.");
       setIsSubmitting(false);
     }
   };
@@ -61,10 +61,10 @@ function LoginContent() {
   }
 
   return (
-    <AuthShell title="Welcome back" subtitle="Sign in to manage your volunteer schedule">
+    <AuthShell title="С возвращением" subtitle="Войдите, чтобы управлять своим расписанием смен">
       {confirmed && (
         <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4 text-sm text-green-800 dark:text-green-200">
-          Email confirmed. You can sign in now.
+          Email подтверждён. Теперь можно войти.
         </div>
       )}
 
@@ -92,13 +92,13 @@ function LoginContent() {
         <div>
           <div className="flex items-center justify-between mb-1">
             <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Password
+              Пароль
             </label>
             <Link
               href="/forgot-password"
               className="text-xs text-slate-600 dark:text-slate-400 hover:underline"
             >
-              Forgot password?
+              Забыли пароль?
             </Link>
           </div>
           <input
@@ -116,7 +116,7 @@ function LoginContent() {
           disabled={isSubmitting}
           className="w-full rounded-lg bg-slate-900 dark:bg-white px-4 py-3 text-sm font-medium text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 disabled:opacity-50"
         >
-          {isSubmitting ? "Signing in..." : "Sign in"}
+          {isSubmitting ? "Вход…" : "Войти"}
         </button>
       </form>
 
@@ -127,7 +127,7 @@ function LoginContent() {
               <div className="w-full border-t border-slate-200 dark:border-slate-700" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="bg-white dark:bg-slate-900 px-2 text-slate-500 dark:text-slate-400">or</span>
+              <span className="bg-white dark:bg-slate-900 px-2 text-slate-500 dark:text-slate-400">или</span>
             </div>
           </div>
 
@@ -137,26 +137,26 @@ function LoginContent() {
             disabled={isSubmitting}
             className="w-full flex items-center justify-center gap-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
           >
-            Continue with Google
+            Войти через Google
           </button>
         </>
       )}
 
       <p className="text-center text-sm text-slate-600 dark:text-slate-400">
-        No account?{" "}
+        Нет аккаунта?{" "}
         <Link href="/signup" className="text-slate-900 dark:text-white font-medium hover:underline">
-          Create one
+          Зарегистрироваться
         </Link>
       </p>
 
       <p className="text-center text-xs text-slate-500 dark:text-slate-400">
-        By signing in, you agree to our{" "}
+        Входя в систему, вы соглашаетесь с{" "}
         <Link href="/terms" className="hover:underline">
-          Terms of Service
+          условиями использования
         </Link>{" "}
-        and{" "}
+        и{" "}
         <Link href="/privacy" className="hover:underline">
-          Privacy Policy
+          политикой конфиденциальности
         </Link>
         .
       </p>

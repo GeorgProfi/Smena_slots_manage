@@ -1,30 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/db/admin";
+import { requireAdmin } from "@/lib/auth/require-admin";
 
 function adminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
-
-async function requireAdmin() {
-  const supabase = createServerSupabaseClient();
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !userData.user) {
-    return { ok: false, status: 401, error: "Unauthorized", user: null } as const;
-  }
-  const user = userData.user;
-  const { data: profile, error: profErr } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (profErr || !profile || !["admin", "super_admin"].includes(profile.role)) {
-    return { ok: false, status: 403, error: "Forbidden", user: null } as const;
-  }
-  return { ok: true, user, role: profile.role } as const;
+  return createAdminClient();
 }
 
 export async function GET() {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/db/admin";
+import { asRows } from "@/lib/db/query";
 import { requireAdmin } from "@/lib/auth/require-admin";
 
 export async function GET() {
@@ -10,17 +11,21 @@ export async function GET() {
     }
     const admin = createAdminClient();
 
-    const { data: profiles, error: profError } = await admin
+    const { data: profilesData, error: profError } = await admin
       .from("profiles")
       .select("id, full_name, role");
     if (profError) throw profError;
 
+    const profiles = asRows<{ id: string; full_name: string; role: string }>(profilesData);
+
     const { data: authUsers, error: authError } = await admin.auth.admin.listUsers();
     if (authError) throw authError;
 
-    const emailMap = new Map(authUsers.users.map((u) => [u.id, u.email]));
+    const emailMap = new Map(
+      (authUsers?.users ?? []).map((u: { id: string; email: string }) => [u.id, u.email])
+    );
 
-    const mapped = (profiles ?? []).map((p) => ({
+    const mapped = profiles.map((p) => ({
       id: p.id,
       full_name: p.full_name,
       role: p.role,

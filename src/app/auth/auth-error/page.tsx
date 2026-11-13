@@ -21,12 +21,9 @@ export default function AuthError() {
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Authentication Error
-          </h1>
+          <h1 className="text-2xl font-bold text-slate-900">Ошибка входа</h1>
           <p className="text-slate-600">
-            There was a problem signing you in. This could be due to an expired
-            link or a configuration issue.
+            Не удалось войти. Возможно, ссылка устарела или есть проблема с настройками.
           </p>
         </div>
 
@@ -35,13 +32,13 @@ export default function AuthError() {
             href="/login"
             className="block w-full rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
           >
-            Try Again
+            Повторить
           </Link>
           <Link
             href="/"
             className="block w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50"
           >
-            Go Home
+            На главную
           </Link>
         </div>
       </div>

@@ -27,7 +27,7 @@ export default function AuthShell({ title, subtitle, children }: AuthShellProps)
 
         <p className="text-center text-sm text-slate-500 dark:text-slate-400">
           <Link href="/" className="text-slate-700 dark:text-slate-300 hover:underline">
-            ← Back to home
+            ← На главную
           </Link>
         </p>
       </div>

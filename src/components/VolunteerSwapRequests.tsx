@@ -54,7 +54,7 @@ export default function VolunteerSwapRequests() {
   if (loading) {
     return (
       <div className="text-sm text-slate-500 dark:text-slate-400">
-        Loading swap requests...
+        Загрузка заявок…
       </div>
     );
   }
@@ -74,10 +74,10 @@ export default function VolunteerSwapRequests() {
     return (
       <div className="text-center py-8">
         <p className="text-slate-600 dark:text-slate-400">
-          You haven't created any swap requests yet.
+          У вас пока нет заявок на обмен.
         </p>
         <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
-          Create one from your shifts to find someone to swap with.
+          Создайте заявку из раздела «Мои смены».
         </p>
       </div>
     );
@@ -86,7 +86,7 @@ export default function VolunteerSwapRequests() {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-        My Swap Requests
+        Мои заявки на обмен
       </h3>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {requests.map((req) => (
@@ -96,12 +96,12 @@ export default function VolunteerSwapRequests() {
           >
             {req.status === "open" && (
               <div className="absolute top-0 right-0 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 text-xs font-bold px-2 py-1 rounded-bl-lg">
-                Open
+                Открыта
               </div>
             )}
             {req.status === "accepted" && (
               <div className="absolute top-0 right-0 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 text-xs font-bold px-2 py-1 rounded-bl-lg">
-                Accepted
+                Принята
               </div>
             )}
             <div className="mb-3">
@@ -154,14 +154,14 @@ export default function VolunteerSwapRequests() {
                   className="w-full text-sm px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-300 rounded transition-colors flex items-center justify-center gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Cancel Request
+                  Отменить заявку
                 </button>
               </div>
             )}
 
             {req.status === "accepted" && (
               <div className="text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 p-2 rounded">
-                ✓ Swap accepted!
+                ✓ Обмен принят!
               </div>
             )}
           </div>

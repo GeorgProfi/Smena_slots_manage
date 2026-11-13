@@ -1,24 +1,24 @@
-import type { User } from "@supabase/supabase-js";
-import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
+import type { SessionUser } from "@/lib/auth/session";
+import { getSessionUser } from "@/lib/auth/session";
+import { createAdminClient } from "@/lib/db/admin";
 
 export type AdminAuthResult =
-  | { ok: true; user: User; role: string }
+  | { ok: true; user: SessionUser; role: string }
   | { ok: false; status: number; error: string; user: null; role: null };
 
 export async function requireAdmin(): Promise<AdminAuthResult> {
-  const supabase = createServerSupabaseClient();
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !userData.user) {
+  const user = await getSessionUser();
+  if (!user) {
     return { ok: false, status: 401, error: "Unauthorized", user: null, role: null };
   }
-  const user = userData.user;
-  const { data: profile, error: profErr } = await supabase
+  const admin = createAdminClient();
+  const { data: profile, error: profErr } = await admin
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  if (profErr || !profile || !["admin", "super_admin"].includes(profile.role)) {
+  if (profErr || !profile || !["admin", "super_admin"].includes(profile.role as string)) {
     return { ok: false, status: 403, error: "Forbidden", user: null, role: null };
   }
-  return { ok: true, user, role: profile.role };
+  return { ok: true, user, role: profile.role as string };
 }

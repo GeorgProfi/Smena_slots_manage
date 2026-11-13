@@ -1,11 +1,9 @@
-import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/db/admin";
+import { query } from "@/lib/db/pool";
 import webpush from "web-push";
 
 function adminClient() {
-  return createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  return createAdminClient();
 }
 
 /**
@@ -140,29 +138,26 @@ export async function sendShiftReminders() {
         const reminderTime = new Date(now.getTime() + reminderMinutes * 60000);
 
         // Find shifts that should be reminded now
-        const { data: shifts } = await admin
-          .from("shift_assignments")
-          .select(
-            `
-            id,
-            sub_shifts!inner(
-              id,
-              role_name,
-              start_time,
-              end_time,
-              events!inner(id, title, location)
-            )
-          `
-          )
-          .eq("user_id", pref.user_id)
-          .eq("status", "confirmed")
-          .gte("sub_shifts.start_time", reminderTime.toISOString())
-          .lte(
-            "sub_shifts.start_time",
-            new Date(reminderTime.getTime() + 60000).toISOString()
-          );
+        const windowEnd = new Date(reminderTime.getTime() + 60000).toISOString();
+        const { rows: shifts } = await query<{
+          id: string;
+          role_name: string;
+          start_time: string;
+          event_title: string;
+          event_location: string | null;
+        }>(
+          `SELECT sa.id, ss.role_name, COALESCE(ss.start_time, e.start_time) AS start_time,
+                  e.title AS event_title, e.location AS event_location
+           FROM shift_assignments sa
+           JOIN sub_shifts ss ON ss.id = sa.sub_shift_id
+           JOIN events e ON e.id = ss.event_id
+           WHERE sa.user_id = $1 AND sa.status = 'confirmed'
+             AND COALESCE(ss.start_time, e.start_time) >= $2::timestamptz
+             AND COALESCE(ss.start_time, e.start_time) <= $3::timestamptz`,
+          [pref.user_id, reminderTime.toISOString(), windowEnd]
+        );
 
-        if (!shifts || shifts.length === 0) {
+        if (!shifts.length) {
           continue;
         }
 
@@ -174,43 +169,35 @@ export async function sendShiftReminders() {
         );
 
         for (const shift of shifts) {
-          const subShifts = Array.isArray(shift.sub_shifts) ? shift.sub_shifts : [shift.sub_shifts];
-          
-          for (const sub of subShifts) {
-            const event = Array.isArray(sub.events) ? sub.events[0] : sub.events;
-            
-            if (!event) continue;
+          const shiftDate = new Date(shift.start_time);
+          const formattedTime = shiftDate.toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: userTz,
+          });
 
-            const shiftDate = new Date(sub.start_time);
-            const formattedTime = shiftDate.toLocaleString("en-US", {
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              timeZone: userTz,
-            });
-
-            await webpush.sendNotification(
-              subscription.push_subscription,
-              JSON.stringify({
-                title: "Shift Reminder",
-                body: `${event.title} - ${sub.role_name} at ${formattedTime}`,
-                data: {
-                  url: "/volunteer",
-                  shift_info: {
-                    event: event.title,
-                    role: sub.role_name,
-                    time: sub.start_time,
-                    location: event.location,
-                  },
+          await webpush.sendNotification(
+            subscription.push_subscription,
+            JSON.stringify({
+              title: "Shift Reminder",
+              body: `${shift.event_title} - ${shift.role_name} at ${formattedTime}`,
+              data: {
+                url: "/volunteer",
+                shift_info: {
+                  event: shift.event_title,
+                  role: shift.role_name,
+                  time: shift.start_time,
+                  location: shift.event_location,
                 },
-                tag: `shift-reminder-${shift.id}`,
-                requireInteraction: false,
-              })
-            );
+              },
+              tag: `shift-reminder-${shift.id}`,
+              requireInteraction: false,
+            })
+          );
 
-            sentCount++;
-          }
+          sentCount++;
         }
       } catch (error) {
         console.error(`Error processing reminders for user ${pref.user_id}:`, error);

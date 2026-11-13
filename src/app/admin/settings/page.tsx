@@ -28,6 +28,11 @@ export default function AdminSettingsPage() {
   const [orgName, setOrgName] = useState<string>("");
   const [orgLogoUrl, setOrgLogoUrl] = useState<string>("");
   const [allowSelfSignup, setAllowSelfSignup] = useState<boolean>(true);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
   const [reminderHours, setReminderHours] = useState<number>(24);
 
@@ -79,6 +84,32 @@ export default function AdminSettingsPage() {
       alert("Failed to save setting");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const sendInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setInviteMessage(null);
+    setInviteError(null);
+    setInviting(true);
+    try {
+      const res = await fetch("/api/admin/users/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: inviteEmail.trim(),
+          fullName: inviteName.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Invite failed");
+      setInviteMessage(`Invitation sent to ${inviteEmail.trim()}.`);
+      setInviteEmail("");
+      setInviteName("");
+    } catch (err: unknown) {
+      setInviteError(err instanceof Error ? err.message : "Invite failed");
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -270,6 +301,51 @@ export default function AdminSettingsPage() {
                   </label>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Invite volunteer */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+            <div className="p-6 space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Invite volunteer</h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Send an email invite when self-signup is disabled or for onboarding by email.
+                </p>
+              </div>
+              {inviteMessage && (
+                <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
+                  {inviteMessage}
+                </p>
+              )}
+              {inviteError && (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">{inviteError}</p>
+              )}
+              <form onSubmit={sendInvite} className="grid gap-3 sm:grid-cols-2">
+                <input
+                  type="email"
+                  required
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="volunteer@example.com"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                />
+                <input
+                  type="text"
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                  placeholder="Full name (optional)"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                />
+                <button
+                  type="submit"
+                  disabled={inviting}
+                  className="sm:col-span-2 inline-flex justify-center items-center gap-2 rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
+                >
+                  {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {inviting ? "Sending..." : "Send invite"}
+                </button>
+              </form>
             </div>
           </div>
 

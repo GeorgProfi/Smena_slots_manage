@@ -110,6 +110,13 @@ export default function UserMenu() {
               </p>
               <p className="text-xs text-slate-500 truncate">{user.email}</p>
             </div>
+            <Link
+              href="/account/password"
+              onClick={() => setIsOpen(false)}
+              className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Change password
+            </Link>
             <button
               onClick={handleSignOut}
               disabled={isSigningOut}

@@ -19,7 +19,10 @@ export default function TermsOfService() {
             </section>
             <section>
               <h2>3. Accounts</h2>
-              <p>Authentication is provided via Facebook Login. You are responsible for maintaining the security of your account.</p>
+              <p>
+                Accounts use email and password through Supabase Auth. You may also use Google sign-in when enabled
+                by your organization. You are responsible for keeping your password secure.
+              </p>
             </section>
             <section>
               <h2>4. Data</h2>

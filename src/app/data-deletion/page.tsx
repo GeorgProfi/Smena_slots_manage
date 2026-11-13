@@ -103,10 +103,7 @@ export default function DataDeletion() {
                   <li>Your account and profile information</li>
                   <li>Your volunteer shift history</li>
                   <li>Any personal data associated with your account</li>
-                  <li>
-                    Your authentication data (Facebook login connection will be
-                    removed)
-                  </li>
+                  <li>Your authentication credentials and Supabase Auth record</li>
                 </ul>
               </div>
 
@@ -140,19 +137,19 @@ export default function DataDeletion() {
                     htmlFor="email"
                     className="block text-sm font-medium text-slate-700 mb-2"
                   >
-                    Email Address or Facebook Account
+                    Email address
                   </label>
                   <input
                     type="text"
                     id="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com or Facebook user ID"
+                    placeholder="your@email.com"
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                   <p className="mt-1 text-xs text-slate-500">
-                    Provide the email or Facebook account you used to sign up
+                    Provide the email you used to register
                   </p>
                 </div>
 
@@ -222,7 +219,7 @@ export default function DataDeletion() {
                   </p>
                   <ul className="list-disc list-inside space-y-1 ml-4">
                     <li>Simply sign out and stop using the service</li>
-                    <li>Revoke VolunTy's access in your Facebook settings</li>
+                    <li>Change your password at /account/password if you only wish to secure your account</li>
                     <li>
                       Contact us at privacy@volunty.app for other options
                     </li>
@@ -268,24 +265,14 @@ export default function DataDeletion() {
           )}
         </div>
 
-        {/* Instructions for Facebook Users */}
         <div className="mt-8 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-          <h2 className="text-lg font-semibold text-slate-900 mb-3">
-            For Facebook Login Users
-          </h2>
-          <p className="text-sm text-slate-600 mb-3">
-            You can also revoke VolunTy's access directly from Facebook:
-          </p>
-          <ol className="text-sm text-slate-600 space-y-2 list-decimal list-inside">
-            <li>Go to your Facebook Settings & Privacy → Settings</li>
-            <li>Click on "Apps and Websites"</li>
-            <li>Find "VolunTy" in the list</li>
-            <li>Click "Remove" to revoke access</li>
-          </ol>
-          <p className="text-sm text-slate-500 mt-4">
-            Note: Revoking access prevents you from logging in, but doesn't
-            delete your data from our system. Use the form above to request data
-            deletion.
+          <h2 className="text-lg font-semibold text-slate-900 mb-3">Google sign-in users</h2>
+          <p className="text-sm text-slate-600">
+            If you previously used Google, you can set a password via{" "}
+            <Link href="/forgot-password" className="text-blue-600 hover:underline">
+              forgot password
+            </Link>{" "}
+            using the same email, or use your Google account until Google sign-in is disabled.
           </p>
         </div>
       </div>

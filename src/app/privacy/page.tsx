@@ -36,16 +36,11 @@ export default function PrivacyPolicy() {
               <h2 className="text-xl font-semibold text-slate-900 mb-3">
                 2. Information We Collect
               </h2>
-              <p className="text-slate-600 mb-2">
-                When you sign in with Facebook, we collect:
-              </p>
+              <p className="text-slate-600 mb-2">When you create an account or sign in, we collect:</p>
               <ul className="list-disc list-inside text-slate-600 space-y-1 ml-4">
-                <li>Your public profile information (name, profile picture)</li>
-                <li>Your Facebook user ID</li>
-                <li>
-                  Any additional information you explicitly grant us permission
-                  to access
-                </li>
+                <li>Email address and display name you provide</li>
+                <li>Profile information from Google if you choose Google sign-in (name, avatar)</li>
+                <li>Authentication identifiers managed by Supabase Auth</li>
               </ul>
               <p className="text-slate-600 mt-3">
                 We also collect information about your volunteer activities and
@@ -142,10 +137,9 @@ export default function PrivacyPolicy() {
                 8. Third-Party Services
               </h2>
               <p className="text-slate-600">
-                Our application uses Facebook Login for authentication. Your use
-                of Facebook Login is governed by Facebook's Privacy Policy. We
-                do not control and are not responsible for Facebook's privacy
-                practices.
+                Authentication is provided by Supabase Auth (email/password and optional Google OAuth).
+                Google sign-in is subject to Google&apos;s privacy policy. Supabase processes auth data as
+                described in their documentation and your project configuration.
               </p>
             </section>
 

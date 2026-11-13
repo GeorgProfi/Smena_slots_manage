@@ -5,6 +5,7 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/";
+  const type = searchParams.get("type");
   const error = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
 
@@ -25,6 +26,9 @@ export async function GET(request: Request) {
         // Verify the session was created
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          if (type === "signup" || type === "email") {
+            return NextResponse.redirect(`${origin}/login?confirmed=1`);
+          }
           return NextResponse.redirect(`${origin}${next}`);
         } else {
           console.error("User not found after session exchange");

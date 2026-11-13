@@ -32,17 +32,25 @@
 2. **Set Up Backend**
    - [Create a free Supabase account](https://supabase.com/) and a new project.
    - Run the database SQL setup provided in [`/supabase/migrations`].
-   - Put your Supabase credentials in `.env.local`.
+   - In Supabase Dashboard → **Authentication**: enable **Email** (password), configure **Site URL** and redirect URLs (`https://<your-domain>/auth/callback`, and local `http://localhost:3000/auth/callback`). Optional: confirm email, custom SMTP, email templates.
+   - Leave **Google** enabled during migration if you have existing Google users; set `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH=false` and disable Google in Dashboard when ready to cut over.
+   - Copy `.env.example` to `.env.local` and fill in credentials.
 
 3. **Install & Start**
    ```bash
    npm install
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000) and register your first admin account.
+   Open [http://localhost:3000](http://localhost:3000), sign up with email/password at `/signup`, then promote your user to admin in Supabase SQL Editor:
+   ```sql
+   update public.profiles set role = 'super_admin' where id = '<your-auth-user-uuid>';
+   ```
+   (Find the UUID in Authentication → Users.)
 
 4. **Invite Volunteers**
-   - Volunteers register on the site, choose shifts, and can manage swaps immediately.
+   - When **Allow self signup** is off, admins invite users from **Admin → Settings**.
+   - Otherwise volunteers register at `/signup`, choose shifts, and can manage swaps immediately.
+   - Existing Google users can set a password via **Forgot password** or **Change password** using the same email.
 
 
 ## 👀 Main Screens
@@ -74,7 +82,7 @@ Place your image files in `public/screenshots/` so they are served by Next.js wi
 
 ## 🧩 Integrations
 
-- **Authentication:** Secure login via Google (Supabase Auth)
+- **Authentication:** Email and password via Supabase Auth (optional Google during migration — `NEXT_PUBLIC_ENABLE_GOOGLE_AUTH`)
 - **Database:** PostgreSQL (Supabase)
 - **Notifications:** Browser push notifications
 

@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const protectedRoutes = ["/admin", "/volunteer"];
 
 // Routes that should redirect to home if already authenticated
-const authRoutes = ["/login"];
+const authRoutes = ["/login", "/signup", "/forgot-password", "/reset-password"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({

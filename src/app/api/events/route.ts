@@ -39,6 +39,10 @@ export async function GET() {
     let capacities: Record<string, number> = {};
     let filledByEvent: Record<string, number> = {};
     let filledBySubShift: Record<string, number> = {};
+    const assigneesBySubShift: Record<
+      string,
+      { user_id: string; full_name: string; taken_at: string; status: string }[]
+    > = {};
 
     if (eventIds2.length) {
       const { data: subShifts } = await admin
@@ -58,10 +62,38 @@ export async function GET() {
       if (allSubShiftIds.length) {
         const { data: assignments } = await admin
           .from("shift_assignments")
-          .select("id,sub_shift_id").in("sub_shift_id", allSubShiftIds);
+          .select("id,sub_shift_id,user_id,created_at,status")
+          .in("sub_shift_id", allSubShiftIds);
+        const userIds = [
+          ...new Set((assignments ?? []).map((a: { user_id: string }) => a.user_id)),
+        ];
+        const nameByUser: Record<string, string> = {};
+        if (userIds.length) {
+          const { data: profiles } = await admin
+            .from("profiles")
+            .select("id,full_name")
+            .in("id", userIds);
+          (profiles ?? []).forEach((p: { id: string; full_name: string | null }) => {
+            nameByUser[p.id] = p.full_name?.trim() || "—";
+          });
+        }
         (assignments ?? []).forEach((a: any) => {
           filledBySubShift[a.sub_shift_id] = (filledBySubShift[a.sub_shift_id] ?? 0) + 1;
+          const takenAt =
+            a.created_at instanceof Date
+              ? a.created_at.toISOString()
+              : String(a.created_at ?? "");
+          assigneesBySubShift[a.sub_shift_id] ??= [];
+          assigneesBySubShift[a.sub_shift_id].push({
+            user_id: a.user_id,
+            full_name: nameByUser[a.user_id] ?? "—",
+            taken_at: takenAt,
+            status: a.status ?? "confirmed",
+          });
         });
+        for (const list of Object.values(assigneesBySubShift)) {
+          list.sort((x, y) => x.taken_at.localeCompare(y.taken_at));
+        }
         filledByEvent = Object.fromEntries(
           Object.entries(byEvent).map(([eventId, v]) => {
             const total = v.subShiftIds.reduce((acc, id) => acc + (filledBySubShift[id] ?? 0), 0);
@@ -82,6 +114,7 @@ export async function GET() {
         ...s,
         filled: filledBySubShift[s.id] ?? 0,
         available: Math.max((s.capacity ?? 0) - (filledBySubShift[s.id] ?? 0), 0),
+        assignees: assigneesBySubShift[s.id] ?? [],
       }));
       const capacity = subShifts.reduce((acc: number, s: any) => acc + (s.capacity ?? 0), 0);
       const filled = subShifts.reduce((acc: number, s: any) => acc + (filledBySubShift[s.id] ?? 0), 0);

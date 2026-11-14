@@ -33,6 +33,12 @@ interface CalendarEvent {
     endDate: string;
     endTime: string;
     capacity: number;
+    assignees?: {
+      userId: string;
+      name: string;
+      takenAt: string;
+      status: string;
+    }[];
   }[];
   capacity: number;
   filled: number;
@@ -95,6 +101,12 @@ export default function AdminSchedule() {
           endDate: (s.end_time || evt.end_time)?.slice(0, 10) ?? "",
           endTime: (s.end_time || evt.end_time)?.slice(11, 16) ?? "",
           capacity: s.capacity ?? 0,
+          assignees: (s.assignees ?? []).map((a: any) => ({
+            userId: a.user_id,
+            name: a.full_name ?? "—",
+            takenAt: a.taken_at,
+            status: a.status ?? "confirmed",
+          })),
         })),
       capacity: evt.capacity ?? 0,
       filled: evt.filled ?? 0,

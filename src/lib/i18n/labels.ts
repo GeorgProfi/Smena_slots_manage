@@ -36,3 +36,10 @@ export function formatMonthYearRu(date: Date): string {
   const raw = format(date, "LLLL yyyy", { locale: ru });
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
+
+/** Дата и время взятия слота для интерфейса. */
+export function formatDateTimeRu(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return format(date, "d MMM yyyy, HH:mm", { locale: ru });
+}

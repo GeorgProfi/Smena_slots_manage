@@ -3,6 +3,14 @@
 import { useEffect, useState } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
 import { formatDateInTimezone, formatTimeInTimezone } from "@/lib/timezone";
+import { formatDateTimeRu } from "@/lib/i18n/labels";
+
+interface RoleAssignee {
+  userId: string;
+  name: string;
+  takenAt: string;
+  status: string;
+}
 
 interface SubShift {
   id: string;
@@ -12,6 +20,7 @@ interface SubShift {
   endDate: string;
   endTime: string;
   capacity: number;
+  assignees?: RoleAssignee[];
 }
 
 interface CreateEventModalProps {
@@ -417,6 +426,44 @@ export default function CreateEventModal({
                       className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                     />
                   </div>
+
+                  {isEdit && shift.assignees && (
+                    <div className="w-full border-t border-slate-200 pt-3">
+                      <p className="text-xs font-medium text-slate-500 mb-2">
+                        Взяли этот слот
+                        {shift.assignees.length > 0 && (
+                          <>
+                            {" "}
+                            ({shift.assignees.length}
+                            {shift.capacity > shift.assignees.length
+                              ? ` из ${shift.capacity}`
+                              : ""}
+                            )
+                          </>
+                        )}
+                      </p>
+                      {shift.assignees.length === 0 ? (
+                        <p className="text-xs text-slate-400">Пока никто не взял</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {shift.assignees.map((a) => (
+                            <li
+                              key={a.userId}
+                              className="flex flex-wrap items-baseline justify-between gap-2 rounded-md bg-white px-2 py-1.5 text-sm border border-slate-100"
+                            >
+                              <span className="font-medium text-slate-800">{a.name}</span>
+                              <span className="text-xs text-slate-500">
+                                {formatDateTimeRu(a.takenAt)}
+                                {a.status === "pending_swap" && (
+                                  <span className="ml-2 text-amber-600">· замена</span>
+                                )}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
 
                   <button
                     type="button"

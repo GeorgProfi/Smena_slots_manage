@@ -64,9 +64,9 @@ export async function GET() {
           .from("shift_assignments")
           .select("id,sub_shift_id,user_id,created_at,status")
           .in("sub_shift_id", allSubShiftIds);
-        const userIds = [
-          ...new Set((assignments ?? []).map((a: { user_id: string }) => a.user_id)),
-        ];
+        const userIds = Array.from(
+          new Set((assignments ?? []).map((a: { user_id: string }) => a.user_id))
+        );
         const nameByUser: Record<string, string> = {};
         if (userIds.length) {
           const { data: profiles } = await admin

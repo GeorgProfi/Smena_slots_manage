@@ -72,7 +72,7 @@ export default function AdminSwapRequests() {
   }
 
   if (!items.length) {
-    return <div className="text-sm text-slate-500 dark:text-slate-400">Нет открытых заявок на обмен.</div>;
+    return <div className="text-sm text-slate-500 dark:text-slate-400">Нет открытых заявок на замену.</div>;
   }
 
   return (
@@ -134,7 +134,7 @@ export default function AdminSwapRequests() {
         {items.map((r) => (
           <div key={r.id} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">{r.event_title || "Событие"}</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">{r.event_title || "Слот"}</p>
               <span className="text-xs text-slate-500 dark:text-slate-400">{new Date(r.created_at).toLocaleDateString()}</span>
             </div>
             <p className="text-sm text-slate-700 dark:text-slate-300">Роль: {r.role_name}</p>

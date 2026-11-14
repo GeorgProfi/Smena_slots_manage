@@ -18,6 +18,7 @@ import {
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import CreateEventModal from "./CreateEventModal";
 import { combineDateAndTimeInTimezone } from "@/lib/timezone";
+import { formatMonthYearRu } from "@/lib/i18n/labels";
 
 interface CalendarEvent {
   id: string;
@@ -189,7 +190,7 @@ export default function AdminSchedule() {
           }
         }
         if (!result.ok) {
-          const msg = result.body?.error || "Не удалось сохранить событие";
+          const msg = result.body?.error || "Не удалось сохранить слот";
           throw new Error(msg);
         }
       } else {
@@ -214,7 +215,7 @@ export default function AdminSchedule() {
           };
           const result = await persistEvent(payload);
           if (!result.ok) {
-            const msg = result.body?.error || "Не удалось создать событие";
+            const msg = result.body?.error || "Не удалось создать слот";
             throw new Error(msg);
           }
         }
@@ -225,7 +226,7 @@ export default function AdminSchedule() {
       setEditingEvent(null);
     } catch (error: any) {
       console.error("Failed to save event:", error);
-      alert(error?.message || "Не удалось сохранить событие. Попробуйте снова.");
+      alert(error?.message || "Не удалось сохранить слот. Попробуйте снова.");
     } finally {
       setIsSaving(false);
     }
@@ -243,7 +244,7 @@ export default function AdminSchedule() {
       setEditingEvent(null);
     } catch (error) {
       console.error("Failed to delete event:", error);
-      alert("Не удалось удалить событие. Попробуйте снова.");
+      alert("Не удалось удалить слот. Попробуйте снова.");
     } finally {
       setIsSaving(false);
     }
@@ -253,21 +254,21 @@ export default function AdminSchedule() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-slate-500">{format(currentMonth, "MMMM yyyy")}</p>
-          <h3 className="text-2xl font-bold text-slate-900">Schedule</h3>
+          <p className="text-sm font-medium text-slate-500">{formatMonthYearRu(currentMonth)}</p>
+          <h3 className="text-2xl font-bold text-slate-900">Расписание</h3>
         </div>
         <div className="flex items-center gap-2">
           <button
             className="rounded-lg border border-slate-300 p-2 hover:bg-slate-50"
             onClick={() => setCurrentMonth((d) => subMonths(d, 1))}
-            aria-label="Previous month"
+            aria-label="Предыдущий месяц"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             className="rounded-lg border border-slate-300 p-2 hover:bg-slate-50"
             onClick={() => setCurrentMonth((d) => addMonths(d, 1))}
-            aria-label="Next month"
+            aria-label="Следующий месяц"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -276,7 +277,7 @@ export default function AdminSchedule() {
             onClick={() => openCreate(new Date())}
           >
             <Plus className="h-4 w-4" />
-            Создать событие
+            Создать слот
           </button>
         </div>
       </div>
@@ -312,7 +313,7 @@ export default function AdminSchedule() {
                 </div>
                 <div className="mt-2 space-y-1">
                   {dayEvents.length === 0 && (
-                    <p className="text-[11px] text-slate-400">No events</p>
+                    <p className="text-[11px] text-slate-400">Нет слотов</p>
                   )}
                   {dayEvents.map((evt) => (
                     <button
@@ -327,7 +328,7 @@ export default function AdminSchedule() {
                       <p className="text-[11px] text-slate-600">
                         {format(evt.start, "HH:mm")} - {format(evt.end, "HH:mm")}
                       </p>
-                      <p className="text-[11px] text-slate-500">{evt.filled}/{evt.capacity} staffed</p>
+                      <p className="text-[11px] text-slate-500">{evt.filled}/{evt.capacity} взято</p>
                     </button>
                   ))}
                 </div>

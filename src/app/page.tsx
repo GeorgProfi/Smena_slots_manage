@@ -13,7 +13,7 @@ export default function Home() {
         <div className="mx-auto max-w-2xl text-center">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-5xl">{UI.appName}</h1>
           <p className="mt-4 text-base leading-7 text-slate-600">
-            События, смены и обмен слотами — платформа для координации курьеров.
+            Слоты, смены и замена слотов — платформа для координации курьеров.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             {!isLoading &&

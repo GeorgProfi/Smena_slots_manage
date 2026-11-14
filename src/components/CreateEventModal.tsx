@@ -220,7 +220,7 @@ export default function CreateEventModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6 border-b pb-4">
-          <h2 className="text-2xl font-bold text-slate-900">{isEdit ? "Редактирование события" : "Новое событие"}</h2>
+          <h2 className="text-2xl font-bold text-slate-900">{isEdit ? "Редактирование слота" : "Новый слот"}</h2>
           <button
             onClick={onClose}
             className="rounded-full p-2 hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -235,7 +235,7 @@ export default function CreateEventModal({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Название события
+                Название слота
               </label>
               <input
                 type="text"
@@ -455,7 +455,7 @@ export default function CreateEventModal({
                   Сохранение…
                 </>
               ) : (
-                isEdit ? "Сохранить изменения" : "Создать событие"
+                isEdit ? "Сохранить изменения" : "Создать слот"
               )}
             </button>
             {isEdit && onDelete && initialEvent?.id && (

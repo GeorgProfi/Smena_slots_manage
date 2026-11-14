@@ -119,7 +119,7 @@ export default function SwapRequestPage({
               <CheckCircle className="h-5 w-5 text-green-600" />
               <p className="text-green-800">
                 {result === "accepted"
-                  ? "Обмен принят! Вы назначены на эту смену."
+                  ? "Замена принята! Вы назначены на эту смену."
                   : "Заявка отклонена."}
               </p>
             </div>
@@ -131,10 +131,10 @@ export default function SwapRequestPage({
             <div>
               <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
                 <ArrowRightLeft className="h-8 w-8 text-blue-600" />
-                Заявка на обмен
+                Заявка на замену
               </h1>
               <p className="text-slate-600 mt-1">
-                {swapRequest?.requester_name} хочет обменять смену
+                {swapRequest?.requester_name} хочет заменить смену
               </p>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function SwapRequestPage({
               <h2 className="font-semibold text-slate-900 mb-4">Детали смены</h2>
               <div className="space-y-3 text-slate-600">
                 <div className="flex justify-between items-start">
-                  <span>Событие:</span>
+                  <span>Слот:</span>
                   <span className="font-medium text-slate-900">
                     {swapRequest?.event_title}
                   </span>
@@ -214,7 +214,7 @@ export default function SwapRequestPage({
                   disabled={processing}
                   className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-green-400 disabled:cursor-not-allowed"
                 >
-                  {processing ? "Обработка…" : "Принять обмен"}
+                  {processing ? "Обработка…" : "Принять замену"}
                 </button>
                 <button
                   onClick={() => handleAction("decline")}

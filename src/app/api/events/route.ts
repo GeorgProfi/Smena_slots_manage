@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { asRows } from "@/lib/db/query";
+import { compareDateTimeFields } from "@/lib/timezone";
 
 function getAdmin() {
   return createAdminClient();
@@ -73,14 +74,9 @@ export async function GET() {
     const payload = eventsWithSubs.map((e: { id: string; sub_shifts?: unknown[] }) => {
       const subShifts = (e.sub_shifts ?? [])
         .sort((a: any, b: any) => {
-          // Sort by start_time, then by end_time (for consistent ordering of overlapping shifts)
-          const aStart = a.start_time || "";
-          const bStart = b.start_time || "";
-          const startCompare = aStart.localeCompare(bStart);
+          const startCompare = compareDateTimeFields(a.start_time, b.start_time);
           if (startCompare !== 0) return startCompare;
-          const aEnd = a.end_time || "";
-          const bEnd = b.end_time || "";
-          return aEnd.localeCompare(bEnd);
+          return compareDateTimeFields(a.end_time, b.end_time);
         })
         .map((s: any) => ({
         ...s,

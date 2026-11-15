@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import SuperadminTransfer from "@/components/SuperadminTransfer";
 import { Save, Loader2 } from "lucide-react";
+import { roleLabel } from "@/lib/i18n/labels";
 
 const timezones = [
   { value: "Europe/Brussels", label: "Europe/Brussels (Belgium)" },
@@ -28,6 +29,7 @@ export default function AdminSettingsPage() {
   const [allowSelfSignup, setAllowSelfSignup] = useState<boolean>(true);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteName, setInviteName] = useState("");
+  const [inviteRole, setInviteRole] = useState<"volunteer" | "admin">("volunteer");
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
@@ -97,15 +99,20 @@ export default function AdminSettingsPage() {
         body: JSON.stringify({
           email: inviteEmail.trim(),
           fullName: inviteName.trim() || undefined,
+          role: inviteRole,
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Invite failed");
-      setInviteMessage(`Приглашение отправлено на ${inviteEmail.trim()}.`);
+      if (!res.ok) throw new Error(data.error ?? "Не удалось создать учётную запись");
+      const createdRole = (data.role as string) ?? inviteRole;
+      setInviteMessage(
+        `Учётная запись ${inviteEmail.trim()} создана (${roleLabel(createdRole)}). Пользователь задаёт пароль по ссылке для сброса пароля.`
+      );
       setInviteEmail("");
       setInviteName("");
+      setInviteRole("volunteer");
     } catch (err: unknown) {
-      setInviteError(err instanceof Error ? err.message : "Не удалось отправить приглашение");
+      setInviteError(err instanceof Error ? err.message : "Не удалось создать учётную запись");
     } finally {
       setInviting(false);
     }
@@ -291,13 +298,14 @@ export default function AdminSettingsPage() {
             </div>
           </div>
 
-          {/* Invite volunteer */}
+          {/* Create account */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200">
             <div className="p-6 space-y-4">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Пригласить курьера</h3>
+                <h3 className="text-lg font-semibold text-slate-900">Создание учётной записи</h3>
                 <p className="text-sm text-slate-500 mt-1">
-                  Отправить приглашение на email, если саморегистрация отключена.
+                  Новый пользователь — курьер или администратор. После создания он задаёт пароль по ссылке для
+                  сброса (в режиме разработки ссылка пишется в лог сервера).
                 </p>
               </div>
               {inviteMessage && (
@@ -324,13 +332,27 @@ export default function AdminSettingsPage() {
                   placeholder="Имя (необязательно)"
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                 />
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Роль</label>
+                  <select
+                    value={inviteRole}
+                    onChange={(e) =>
+                      setInviteRole(e.target.value === "admin" ? "admin" : "volunteer")
+                    }
+                    disabled={inviting}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
+                  >
+                    <option value="volunteer">Курьер</option>
+                    <option value="admin">Администратор</option>
+                  </select>
+                </div>
                 <button
                   type="submit"
                   disabled={inviting}
                   className="sm:col-span-2 inline-flex justify-center items-center gap-2 rounded-lg bg-slate-900 text-white px-4 py-2 text-sm font-medium disabled:opacity-50"
                 >
                   {inviting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  {inviting ? "Отправка…" : "Отправить приглашение"}
+                  {inviting ? "Создание…" : "Создать учётную запись"}
                 </button>
               </form>
             </div>

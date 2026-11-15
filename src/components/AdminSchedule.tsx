@@ -8,6 +8,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  isBefore,
   isSameMonth,
   isWithinInterval,
   startOfDay,
@@ -125,8 +126,10 @@ export default function AdminSchedule() {
   }, [currentMonth]);
 
   const openCreate = (date?: Date) => {
+    const day = date ?? new Date();
+    if (isBefore(startOfDay(day), startOfDay(new Date()))) return;
     setEditingEvent(null);
-    setSelectedDate(date);
+    setSelectedDate(day);
     setIsModalOpen(true);
   };
 
@@ -308,20 +311,31 @@ export default function AdminSchedule() {
                 end: endOfDay(evt.end),
               })
             );
-            const isCurrent = isSameMonth(day, currentMonth);
+            const isCurrentMonth = isSameMonth(day, currentMonth);
+            const isPast = isBefore(startOfDay(day), startOfDay(new Date()));
+            const isActive = !isPast;
             return (
               <div
                 key={day.toISOString()}
-                onClick={() => openCreate(day)}
-                className={`min-h-[120px] rounded-lg border p-2 transition hover:border-slate-300 hover:bg-slate-50 ${
-                  isCurrent ? "border-slate-200 bg-white" : "border-slate-100 bg-slate-50 text-slate-400"
+                onClick={() => isActive && openCreate(day)}
+                title={isPast ? "Нельзя создать слот в прошлом" : undefined}
+                className={`min-h-[120px] rounded-lg border p-2 transition ${
+                  isPast
+                    ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400 opacity-75"
+                    : `cursor-pointer hover:border-slate-300 hover:bg-slate-50 ${
+                        isCurrentMonth ? "border-slate-200 bg-white" : "border-slate-100 bg-slate-50"
+                      }`
                 }`}
               >
                 <div className="flex items-center justify-between text-sm">
-                  <span className={`font-semibold ${isCurrent ? "text-slate-900" : "text-slate-400"}`}>
+                  <span
+                    className={`font-semibold ${
+                      isPast || !isCurrentMonth ? "text-slate-400" : "text-slate-900"
+                    }`}
+                  >
                     {format(day, "d")}
                   </span>
-                  <CalendarDays className="h-4 w-4 text-slate-300" />
+                  <CalendarDays className={`h-4 w-4 ${isPast ? "text-slate-200" : "text-slate-300"}`} />
                 </div>
                 <div className="mt-2 space-y-1">
                   {dayEvents.length === 0 && (

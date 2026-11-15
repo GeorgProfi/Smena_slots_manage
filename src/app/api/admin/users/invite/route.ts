@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/db/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
 
 export async function POST(request: Request) {
@@ -15,9 +15,10 @@ export async function POST(request: Request) {
       typeof body.fullName === "string" && body.fullName.trim()
         ? body.fullName.trim()
         : undefined;
+    const role = body.role === "admin" ? "admin" : "volunteer";
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: "Valid email is required." }, { status: 400 });
+      return NextResponse.json({ error: "Укажите корректный email." }, { status: 400 });
     }
 
     const origin = new URL(request.url).origin;
@@ -34,9 +35,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
+    const userId = data.user?.id ?? null;
+    if (userId && role === "admin") {
+      const { error: roleErr } = await admin
+        .from("profiles")
+        .update({ role: "admin" })
+        .eq("id", userId);
+      if (roleErr) {
+        return NextResponse.json({ error: roleErr.message }, { status: 500 });
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      userId: data.user?.id ?? null,
+      userId,
+      role,
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Invite failed";

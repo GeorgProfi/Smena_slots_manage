@@ -41,7 +41,13 @@ export async function GET() {
     let filledBySubShift: Record<string, number> = {};
     const assigneesBySubShift: Record<
       string,
-      { user_id: string; full_name: string; taken_at: string; status: string }[]
+      {
+        assignment_id: string;
+        user_id: string;
+        full_name: string;
+        taken_at: string;
+        status: string;
+      }[]
     > = {};
 
     if (eventIds2.length) {
@@ -85,6 +91,7 @@ export async function GET() {
               : String(a.created_at ?? "");
           assigneesBySubShift[a.sub_shift_id] ??= [];
           assigneesBySubShift[a.sub_shift_id].push({
+            assignment_id: a.id,
             user_id: a.user_id,
             full_name: nameByUser[a.user_id] ?? "—",
             taken_at: takenAt,

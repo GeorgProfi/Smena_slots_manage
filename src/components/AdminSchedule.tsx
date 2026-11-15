@@ -35,6 +35,7 @@ interface CalendarEvent {
     endTime: string;
     capacity: number;
     assignees?: {
+      assignmentId: string;
       userId: string;
       name: string;
       takenAt: string;
@@ -74,11 +75,8 @@ export default function AdminSchedule() {
     return new Date(year, month - 1, day, hour, minute);
   };
 
-  const loadEvents = async () => {
-    const res = await fetch("/api/events");
-    if (!res.ok) return;
-    const data = await res.json();
-    const mapped: CalendarEvent[] = data.map((evt: any) => ({
+  const mapEventsFromApi = (data: any[]): CalendarEvent[] =>
+    data.map((evt: any) => ({
       id: evt.id,
       title: evt.title,
       start: parseWallClockDate(evt.start_time),
@@ -103,6 +101,7 @@ export default function AdminSchedule() {
           endTime: (s.end_time || evt.end_time)?.slice(11, 16) ?? "",
           capacity: s.capacity ?? 0,
           assignees: (s.assignees ?? []).map((a: any) => ({
+            assignmentId: a.assignment_id,
             userId: a.user_id,
             name: a.full_name ?? "—",
             takenAt: a.taken_at,
@@ -112,7 +111,23 @@ export default function AdminSchedule() {
       capacity: evt.capacity ?? 0,
       filled: evt.filled ?? 0,
     }));
+
+  const loadEvents = async () => {
+    const res = await fetch("/api/events");
+    if (!res.ok) return;
+    const data = await res.json();
+    const mapped = mapEventsFromApi(data);
     setEvents(mapped);
+    return mapped;
+  };
+
+  const refreshAssignmentsInModal = async () => {
+    const mapped = await loadEvents();
+    if (!mapped) return;
+    setEditingEvent((prev) => {
+      if (!prev) return prev;
+      return mapped.find((e) => e.id === prev.id) ?? prev;
+    });
   };
 
   useEffect(() => {
@@ -384,6 +399,7 @@ export default function AdminSchedule() {
         } : undefined}
         timezone={timezone}
         isSaving={isSaving}
+        onAssignmentsUpdated={refreshAssignmentsInModal}
       />
     </div>
   );

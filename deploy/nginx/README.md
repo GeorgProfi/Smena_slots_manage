@@ -58,17 +58,38 @@ sudo ufw allow from ВАШ_IP to any port 5433 proto tcp
 
 ## 3. nginx на хосте
 
+Сначала установите nginx (папки `sites-available` появляются только на Debian/Ubuntu **после** установки пакета `nginx`):
+
 ```bash
+# Debian / Ubuntu
 sudo apt update
 sudo apt install -y nginx certbot python3-certbot-nginx
+
+# RHEL / Alma / Rocky / Fedora
+# sudo dnf install -y nginx certbot python3-certbot-nginx
+# sudo systemctl enable --now nginx
+
 sudo mkdir -p /var/www/certbot
 ```
 
-**До certbot** (пока нет сертификата):
+**До certbot** (пока нет сертификата). Выберите **один** способ:
+
+### Вариант A — Debian/Ubuntu (`sites-available`)
 
 ```bash
+cd ~/Smena_slots_manage
 sudo cp deploy/nginx/smenaslots.duckdns.org.http-only.conf /etc/nginx/sites-available/smenaslots
-sudo ln -sf /etc/nginx/sites-available/smenaslots /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/smenaslots /etc/nginx/sites-enabled/smenaslots
+# отключите дефолтный сайт, если мешает:
+# sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### Вариант B — `conf.d` (RHEL или нет каталога `sites-available`)
+
+```bash
+cd ~/Smena_slots_manage
+sudo cp deploy/nginx/smenaslots.duckdns.org.http-only.conf /etc/nginx/conf.d/smenaslots.conf
 sudo nginx -t && sudo systemctl reload nginx
 ```
 

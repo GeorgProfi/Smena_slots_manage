@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
 import { formatDateInTimezone, formatTimeInTimezone } from "@/lib/timezone";
+import { isValidUuid } from "@/lib/uuid";
 
 interface SubShift {
-  id: string;
+  clientKey: string;
+  serverId?: string;
   roleName: string;
   startDate: string;
   startTime: string;
@@ -28,6 +30,7 @@ interface CreateEventModalProps {
     subShifts: SubShift[];
   };
   timezone: string;
+  deliveryPoints?: string[];
   isSaving?: boolean;
 }
 
@@ -39,6 +42,7 @@ export default function CreateEventModal({
   initialDate,
   initialEvent,
   timezone,
+  deliveryPoints = [],
   isSaving = false,
 }: CreateEventModalProps) {
   const [title, setTitle] = useState("");
@@ -96,9 +100,14 @@ export default function CreateEventModal({
             return aEnd.localeCompare(bEnd);
           })
           .map((s) => ({
-            ...s,
+            clientKey: isValidUuid(s.id) ? s.id! : crypto.randomUUID(),
+            serverId: isValidUuid(s.id) ? s.id : undefined,
+            roleName: s.roleName,
+            startDate: s.startDate,
             startTime: s.startTime,
+            endDate: s.endDate,
             endTime: s.endTime,
+            capacity: s.capacity,
           }))
       );
       return;
@@ -116,11 +125,17 @@ export default function CreateEventModal({
 
   if (!isOpen) return null;
 
+  const pointOptions = (() => {
+    const names = new Set(deliveryPoints);
+    if (title.trim()) names.add(title.trim());
+    return Array.from(names);
+  })();
+
   const handleAddSubShift = () => {
     setSubShifts([
       ...subShifts,
       {
-        id: Math.random().toString(36).substr(2, 9),
+        clientKey: crypto.randomUUID(),
         roleName: "",
         startDate: startDate,
         startTime: startTime,
@@ -131,13 +146,13 @@ export default function CreateEventModal({
     ]);
   };
 
-  const handleRemoveSubShift = (id: string) => {
-    setSubShifts(subShifts.filter((s) => s.id !== id));
+  const handleRemoveSubShift = (clientKey: string) => {
+    setSubShifts(subShifts.filter((s) => s.clientKey !== clientKey));
   };
 
-  const updateSubShift = (id: string, field: keyof SubShift, value: any) => {
+  const updateSubShift = (clientKey: string, field: keyof SubShift, value: string | number) => {
     setSubShifts(
-      subShifts.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+      subShifts.map((s) => (s.clientKey === clientKey ? { ...s, [field]: value } : s))
     );
   };
 
@@ -204,7 +219,15 @@ export default function CreateEventModal({
       endDate,
       startTime,
       endTime,
-      subShifts,
+      subShifts: subShifts.map((s) => ({
+        id: s.serverId,
+        roleName: s.roleName,
+        startDate: s.startDate,
+        startTime: s.startTime,
+        endDate: s.endDate,
+        endTime: s.endTime,
+        capacity: s.capacity,
+      })),
     };
     await Promise.resolve(onSave(eventData));
     onClose();
@@ -235,17 +258,28 @@ export default function CreateEventModal({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Название события
+                Выберите точку
               </label>
-              <input
-                type="text"
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                disabled={isSaving}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
-                placeholder="Например, летний фестиваль"
-              />
+              {pointOptions.length === 0 ? (
+                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                  Список точек пуст. Добавьте точки в разделе «Настройки».
+                </p>
+              ) : (
+                <select
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  disabled={isSaving}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">— выберите точку —</option>
+                  {pointOptions.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div className="col-span-2 space-y-2">
@@ -301,7 +335,7 @@ export default function CreateEventModal({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-900">
-                Слоты и роли
+                Слоты
               </h3>
               <button
                 type="button"
@@ -310,25 +344,25 @@ export default function CreateEventModal({
                 className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="h-4 w-4" />
-                Добавить роль
+                Добавить слот
               </button>
             </div>
 
             <div className="space-y-3">
               {subShifts.map((shift) => (
                 <div
-                  key={shift.id}
+                  key={shift.clientKey}
                   className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4"
                 >
                   <div className="flex-1">
                     <label className="mb-1 block text-xs font-medium text-slate-500">
-                      Название роли
+                      Название слота
                     </label>
                     <input
                       type="text"
                       value={shift.roleName}
                       onChange={(e) =>
-                        updateSubShift(shift.id, "roleName", e.target.value)
+                        updateSubShift(shift.clientKey, "roleName", e.target.value)
                       }
                       placeholder="Например, бар, охрана"
                       disabled={isSaving}
@@ -345,7 +379,7 @@ export default function CreateEventModal({
                         type="date"
                         value={shift.startDate}
                         onChange={(e) =>
-                          updateSubShift(shift.id, "startDate", e.target.value)
+                          updateSubShift(shift.clientKey, "startDate", e.target.value)
                         }
                         disabled={isSaving}
                         className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
@@ -359,7 +393,7 @@ export default function CreateEventModal({
                         type="time"
                         value={shift.startTime}
                         onChange={(e) =>
-                          updateSubShift(shift.id, "startTime", e.target.value)
+                          updateSubShift(shift.clientKey, "startTime", e.target.value)
                         }
                         disabled={isSaving}
                         className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
@@ -376,7 +410,7 @@ export default function CreateEventModal({
                         type="date"
                         value={shift.endDate}
                         onChange={(e) =>
-                          updateSubShift(shift.id, "endDate", e.target.value)
+                          updateSubShift(shift.clientKey, "endDate", e.target.value)
                         }
                         disabled={isSaving}
                         className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
@@ -390,7 +424,7 @@ export default function CreateEventModal({
                         type="time"
                         value={shift.endTime}
                         onChange={(e) =>
-                          updateSubShift(shift.id, "endTime", e.target.value)
+                          updateSubShift(shift.clientKey, "endTime", e.target.value)
                         }
                         disabled={isSaving}
                         className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
@@ -408,9 +442,9 @@ export default function CreateEventModal({
                       value={shift.capacity}
                       onChange={(e) =>
                         updateSubShift(
-                          shift.id,
+                          shift.clientKey,
                           "capacity",
-                          parseInt(e.target.value)
+                          parseInt(e.target.value, 10) || 1
                         )
                       }
                       disabled={isSaving}
@@ -420,10 +454,10 @@ export default function CreateEventModal({
 
                   <button
                     type="button"
-                    onClick={() => handleRemoveSubShift(shift.id)}
+                    onClick={() => handleRemoveSubShift(shift.clientKey)}
                     disabled={isSaving}
                     className="mb-1 rounded-md p-2 text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed self-start"
-                    title="Удалить роль"
+                    title="Удалить слот"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

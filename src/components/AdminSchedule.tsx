@@ -18,6 +18,8 @@ import {
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import CreateEventModal from "./CreateEventModal";
 import { combineDateAndTimeInTimezone } from "@/lib/timezone";
+import { parseDeliveryPointsSetting } from "@/lib/delivery-points";
+import { isValidUuid } from "@/lib/uuid";
 
 interface CalendarEvent {
   id: string;
@@ -44,6 +46,7 @@ export default function AdminSchedule() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [timezone, setTimezone] = useState<string>("Europe/Brussels");
+  const [deliveryPoints, setDeliveryPoints] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -54,6 +57,7 @@ export default function AdminSchedule() {
         if (data.timezone) {
           setTimezone(data.timezone);
         }
+        setDeliveryPoints(parseDeliveryPointsSetting(data.delivery_points));
       })
       .catch(() => {});
   }, []);
@@ -86,8 +90,8 @@ export default function AdminSchedule() {
           const bEnd = b.end_time || "";
           return aEnd.localeCompare(bEnd);
         })
-        .map((s: any, idx: number) => ({
-          id: s.id || `${evt.id}-${idx}`,
+        .map((s: any) => ({
+          id: s.id,
           roleName: s.role_name,
           startDate: (s.start_time || evt.start_time)?.slice(0, 10) ?? "",
           startTime: (s.start_time || evt.start_time)?.slice(11, 16) ?? "",
@@ -170,13 +174,15 @@ export default function AdminSchedule() {
           title,
           start_time: `${startDate}T${startTime}:00.000Z`,
           end_time: `${endDate}T${endTime}:00.000Z`,
-          sub_shifts: subShifts.map((s: any) => ({
-            id: s.id,
-            role_name: s.roleName,
-            start_time: `${s.startDate}T${s.startTime}:00.000Z`,
-            end_time: `${s.endDate}T${s.endTime}:00.000Z`,
-            capacity: s.capacity,
-          })),
+          sub_shifts: subShifts.map((s: any) => {
+            const row = {
+              role_name: s.roleName,
+              start_time: `${s.startDate}T${s.startTime}:00.000Z`,
+              end_time: `${s.endDate}T${s.endTime}:00.000Z`,
+              capacity: s.capacity,
+            };
+            return isValidUuid(s.id) ? { id: s.id, ...row } : row;
+          }),
         };
         let result = await persistEvent(payload, id);
         if (!result.ok && result.status === 409 && result.body?.assigned_sub_shifts) {
@@ -356,6 +362,7 @@ export default function AdminSchedule() {
           subShifts: editingEvent.subShifts,
         } : undefined}
         timezone={timezone}
+        deliveryPoints={deliveryPoints}
         isSaving={isSaving}
       />
     </div>

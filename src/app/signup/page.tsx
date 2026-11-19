@@ -108,7 +108,7 @@ export default function SignupPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="fullName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-            Имя <span className="text-slate-400 font-normal">(необязательно)</span>
+            Фамилия и имя <span className="text-slate-400 font-normal">(необязательно)</span>
           </label>
           <input
             id="fullName"

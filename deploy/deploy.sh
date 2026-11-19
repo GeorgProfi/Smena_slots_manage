@@ -14,8 +14,8 @@ if [[ -f .env ]]; then
   set +a
 fi
 
-echo "==> Building app image..."
-"${COMPOSE[@]}" build app
+echo "==> Building images (sequential, lower peak RAM)..."
+COMPOSE_PARALLEL_LIMIT=1 "${COMPOSE[@]}" build migrate app
 
 echo "==> Running database migrations..."
 "${COMPOSE[@]}" run --rm migrate

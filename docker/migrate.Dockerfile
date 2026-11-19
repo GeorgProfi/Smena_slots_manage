@@ -1,8 +1,8 @@
+# Minimal image: only `pg` (no full npm ci — saves RAM on small VPS during build)
 FROM node:20-alpine
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev --no-package-lock --no-audit --no-fund pg@8.13.1
 
 COPY scripts/migrate.mjs scripts/migrate.mjs
 COPY docker/postgres/migrations docker/postgres/migrations

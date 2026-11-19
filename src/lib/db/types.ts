@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DbResult<T = any> = { data: T | null; error: DbError | null; count?: number | null };
 
 export class DbError extends Error {

@@ -6,9 +6,9 @@ import { Calendar, Users, ArrowLeftRight, Settings } from "lucide-react";
 import { UI } from "@/lib/i18n/labels";
 
 const navItems = [
-  { name: "События", href: "/admin/events", icon: Calendar },
+  { name: "Слоты", href: "/admin/events", icon: Calendar },
   { name: UI.couriers, href: "/admin/volunteers", icon: Users },
-  { name: "Обмен сменами", href: "/admin/swaps", icon: ArrowLeftRight },
+  { name: "Замена сменами", href: "/admin/swaps", icon: ArrowLeftRight },
   { name: "Настройки", href: "/admin/settings", icon: Settings },
 ];
 

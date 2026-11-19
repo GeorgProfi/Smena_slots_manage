@@ -74,7 +74,7 @@ export default function VolunteerSwapRequests() {
     return (
       <div className="text-center py-8">
         <p className="text-slate-600 dark:text-slate-400">
-          У вас пока нет заявок на обмен.
+          У вас пока нет заявок на замену.
         </p>
         <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
           Создайте заявку из раздела «Мои смены».
@@ -86,7 +86,7 @@ export default function VolunteerSwapRequests() {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-        Мои заявки на обмен
+        Мои заявки на замену
       </h3>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {requests.map((req) => (
@@ -161,7 +161,7 @@ export default function VolunteerSwapRequests() {
 
             {req.status === "accepted" && (
               <div className="text-sm text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 p-2 rounded">
-                ✓ Обмен принят!
+                ✓ Замена принята!
               </div>
             )}
           </div>

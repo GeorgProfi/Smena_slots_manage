@@ -1,9 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, UserMinus, X } from "lucide-react";
 import { formatDateInTimezone, formatTimeInTimezone } from "@/lib/timezone";
+import { formatDateTimeRu, roleLabel } from "@/lib/i18n/labels";
 import { isValidUuid } from "@/lib/uuid";
+
+interface RoleAssignee {
+  assignmentId: string;
+  userId: string;
+  name: string;
+  takenAt: string;
+  status: string;
+}
+
+interface StaffUser {
+  id: string;
+  full_name: string;
+  role: string;
+}
 
 interface SubShift {
   clientKey: string;
@@ -14,6 +29,7 @@ interface SubShift {
   endDate: string;
   endTime: string;
   capacity: number;
+  assignees?: RoleAssignee[];
 }
 
 interface CreateEventModalProps {
@@ -32,6 +48,7 @@ interface CreateEventModalProps {
   timezone: string;
   deliveryPoints?: string[];
   isSaving?: boolean;
+  onAssignmentsUpdated?: () => void | Promise<void>;
 }
 
 export default function CreateEventModal({
@@ -44,6 +61,7 @@ export default function CreateEventModal({
   timezone,
   deliveryPoints = [],
   isSaving = false,
+  onAssignmentsUpdated,
 }: CreateEventModalProps) {
   const [title, setTitle] = useState("");
   const [startDate, setStartDate] = useState(
@@ -55,8 +73,33 @@ export default function CreateEventModal({
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("17:00");
   const [subShifts, setSubShifts] = useState<SubShift[]>([]);
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
+  const [assignPick, setAssignPick] = useState<Record<string, string>>({});
+  const [assignmentBusy, setAssignmentBusy] = useState<string | null>(null);
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
 
   const isEdit = Boolean(initialEvent);
+
+  useEffect(() => {
+    if (!isOpen || !isEdit) return;
+    let cancelled = false;
+    fetch("/api/admin/volunteers")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        if (cancelled || !Array.isArray(data)) return;
+        setStaffUsers(
+          data.filter((u: StaffUser) =>
+            ["volunteer", "admin", "super_admin"].includes(u.role)
+          )
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setStaffUsers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, isEdit]);
 
   // Reset form when opening
   useEffect(() => {
@@ -156,6 +199,47 @@ export default function CreateEventModal({
     );
   };
 
+  const handleAssignUser = async (subShiftId: string) => {
+    const userId = assignPick[subShiftId];
+    if (!userId) return;
+    setAssignmentError(null);
+    setAssignmentBusy(`assign:${subShiftId}`);
+    try {
+      const res = await fetch("/api/admin/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sub_shift_id: subShiftId, user_id: userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Не удалось назначить");
+      setAssignPick((prev) => ({ ...prev, [subShiftId]: "" }));
+      await onAssignmentsUpdated?.();
+    } catch (err: unknown) {
+      setAssignmentError(err instanceof Error ? err.message : "Не удалось назначить");
+    } finally {
+      setAssignmentBusy(null);
+    }
+  };
+
+  const handleUnassignUser = async (assignmentId: string) => {
+    if (!confirm("Снять пользователя с этого слота?")) return;
+    setAssignmentError(null);
+    setAssignmentBusy(`unassign:${assignmentId}`);
+    try {
+      const res = await fetch(
+        `/api/admin/assignments?id=${encodeURIComponent(assignmentId)}`,
+        { method: "DELETE" }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Не удалось снять");
+      await onAssignmentsUpdated?.();
+    } catch (err: unknown) {
+      setAssignmentError(err instanceof Error ? err.message : "Не удалось снять");
+    } finally {
+      setAssignmentBusy(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!startDate || !endDate) return;
@@ -243,7 +327,7 @@ export default function CreateEventModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6 border-b pb-4">
-          <h2 className="text-2xl font-bold text-slate-900">{isEdit ? "Редактирование события" : "Новое событие"}</h2>
+          <h2 className="text-2xl font-bold text-slate-900">{isEdit ? "Редактирование слота" : "Новый слот"}</h2>
           <button
             onClick={onClose}
             className="rounded-full p-2 hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -347,6 +431,12 @@ export default function CreateEventModal({
                 Добавить слот
               </button>
             </div>
+
+            {assignmentError && isEdit && (
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {assignmentError}
+              </p>
+            )}
 
             <div className="space-y-3">
               {subShifts.map((shift) => (
@@ -452,6 +542,103 @@ export default function CreateEventModal({
                     />
                   </div>
 
+                  {isEdit &&
+                    shift.assignees &&
+                    shift.serverId &&
+                    isValidUuid(shift.serverId) && (
+                    <div className="w-full border-t border-slate-200 pt-3">
+                      <p className="text-xs font-medium text-slate-500 mb-2">
+                        Назначены на слот
+                        {shift.assignees.length > 0 && (
+                          <>
+                            {" "}
+                            ({shift.assignees.length}
+                            {shift.capacity > shift.assignees.length
+                              ? ` из ${shift.capacity}`
+                              : ""}
+                            )
+                          </>
+                        )}
+                      </p>
+                      {shift.assignees.length === 0 ? (
+                        <p className="text-xs text-slate-400">Пока никто не взял</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {shift.assignees.map((a) => (
+                            <li
+                              key={a.assignmentId || a.userId}
+                              className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-white px-2 py-1.5 text-sm border border-slate-100"
+                            >
+                              <div className="min-w-0">
+                                <span className="font-medium text-slate-800">{a.name}</span>
+                                <span className="text-xs text-slate-500 ml-2">
+                                  {formatDateTimeRu(a.takenAt)}
+                                  {a.status === "pending_swap" && (
+                                    <span className="ml-2 text-amber-600">· замена</span>
+                                  )}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                disabled={Boolean(assignmentBusy) || isSaving || !a.assignmentId}
+                                onClick={() => a.assignmentId && handleUnassignUser(a.assignmentId)}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50"
+                              >
+                                {assignmentBusy === `unassign:${a.assignmentId}` ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <UserMinus className="h-3 w-3" />
+                                )}
+                                Снять
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {(shift.assignees.length < shift.capacity) && (
+                        <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                          <select
+                            value={assignPick[shift.serverId] ?? ""}
+                            onChange={(e) =>
+                              setAssignPick((prev) => ({
+                                ...prev,
+                                [shift.serverId!]: e.target.value,
+                              }))
+                            }
+                            disabled={Boolean(assignmentBusy) || isSaving}
+                            className="flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm bg-white"
+                          >
+                            <option value="">Выберите курьера или администратора</option>
+                            {staffUsers
+                              .filter(
+                                (u) => !shift.assignees!.some((a) => a.userId === u.id)
+                              )
+                              .map((u) => (
+                                <option key={u.id} value={u.id}>
+                                  {u.full_name || "—"} ({roleLabel(u.role)})
+                                </option>
+                              ))}
+                          </select>
+                          <button
+                            type="button"
+                            disabled={
+                              Boolean(assignmentBusy) ||
+                              isSaving ||
+                              !(assignPick[shift.serverId!] ?? "")
+                            }
+                            onClick={() => handleAssignUser(shift.serverId!)}
+                            className="inline-flex justify-center items-center gap-1 rounded-md bg-slate-900 text-white px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+                          >
+                            {assignmentBusy === `assign:${shift.serverId}` ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : null}
+                            Назначить
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => handleRemoveSubShift(shift.clientKey)}
@@ -489,7 +676,7 @@ export default function CreateEventModal({
                   Сохранение…
                 </>
               ) : (
-                isEdit ? "Сохранить изменения" : "Создать событие"
+                isEdit ? "Сохранить изменения" : "Создать слот"
               )}
             </button>
             {isEdit && onDelete && initialEvent?.id && (

@@ -1,3 +1,6 @@
+import { format } from "date-fns";
+import { ru } from "date-fns/locale";
+
 /** Подписи ролей и общие UI-строки (интерфейс на русском). */
 export function roleLabel(role: string | null | undefined): string {
   switch (role) {
@@ -27,3 +30,16 @@ export const UI = {
   backHome: "← На главную",
   user: "Пользователь",
 } as const;
+
+/** Например: «Ноябрь 2026». */
+export function formatMonthYearRu(date: Date): string {
+  const raw = format(date, "LLLL yyyy", { locale: ru });
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+/** Дата и время взятия слота для интерфейса. */
+export function formatDateTimeRu(value: string | Date): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return format(date, "d MMM yyyy, HH:mm", { locale: ru });
+}

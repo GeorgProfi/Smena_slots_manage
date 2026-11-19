@@ -3,6 +3,18 @@
  * Handles date conversions for the organization's configured timezone
  */
 
+/** ISO string for sorting; pg/node may return `Date` for timestamptz columns. */
+export function dateTimeSortKey(value: unknown): string {
+  if (value == null || value === "") return "";
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") return value;
+  return String(value);
+}
+
+export function compareDateTimeFields(a: unknown, b: unknown): number {
+  return dateTimeSortKey(a).localeCompare(dateTimeSortKey(b));
+}
+
 // Get timezone from settings (defaults to Europe/Brussels)
 export async function getOrganizationTimezone(): Promise<string> {
   try {

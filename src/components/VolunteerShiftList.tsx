@@ -407,7 +407,7 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
 
       if (!res.ok) {
         const { error } = await res.json().catch(() => ({ error: "Не удалось создать заявку" }));
-        showFeedback(error ?? "Не удалось создать заявку на обмен", "error");
+        showFeedback(error ?? "Не удалось создать заявку на замену", "error");
         return;
       }
 
@@ -418,7 +418,7 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
 
       showFeedback("Заявка создана. Скопируйте ссылку и отправьте её.", "success");
     } catch (e) {
-      showFeedback("Не удалось создать заявку на обмен", "error");
+      showFeedback("Не удалось создать заявку на замену", "error");
     }
   };
 
@@ -439,7 +439,7 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
       
       // Reload data to get updated status from server
       await loadData();
-      showFeedback("Заявка на обмен отменена", "success");
+      showFeedback("Заявка на замену отменена", "success");
     } catch (e: any) {
       showFeedback("Не удалось отменить заявку", "error");
     }
@@ -489,7 +489,7 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
                   >
                     {shift.status === "pending_swap" && (
                       <div className="absolute top-0 right-0 bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1 rounded-bl-lg">
-                        Запрошен обмен
+                        Запрошена замена
                       </div>
                     )}
                     <div className="mb-3">
@@ -516,7 +516,7 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
                         className="w-full flex items-center justify-center gap-2 border border-slate-300 rounded-lg py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                       >
                         <ArrowRightLeft className="h-4 w-4" />
-                        Запросить обмен
+                        Запросить замену
                       </button>
                     )}
                   </div>
@@ -530,7 +530,7 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
             <section>
               <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <ArrowRightLeft className="h-5 w-5 text-amber-600" />
-                Мои заявки на обмен
+                Мои заявки на замену
               </h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {mySwapRequests.map((req) => {
@@ -602,7 +602,7 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
                     )}
 
                     {req.status === "accepted" && (
-                      <div className="text-sm text-green-800 font-semibold">✓ Обмен принят</div>
+                      <div className="text-sm text-green-800 font-semibold">✓ Замена принята</div>
                     )}
                   </div>
                 );})}
@@ -636,7 +636,7 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
                       className="w-full flex items-start justify-between gap-4 p-4 hover:bg-slate-50 text-left"
                     >
                       <div className="flex flex-col gap-1">
-                        <span className="text-sm text-slate-500">Событие</span>
+                        <span className="text-sm text-slate-500">Слот</span>
                         <span className="text-lg font-semibold text-slate-900">{evt.title}</span>
                         <div className="text-sm text-slate-600 flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
@@ -877,7 +877,7 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
                                           </div>
                                         </div>
                                         <div className={`flex-shrink-0 text-[9px] ${accentText} font-medium px-1.5 py-0.5 rounded border ${baseBorder}`}>
-                                          {mine ? "Обмен" : "Свободна"}
+                                          {mine ? "Замена" : "Свободна"}
                                         </div>
                                       </div>
                                     );
@@ -904,7 +904,7 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
                                             </div>
                                           </div>
                                           <div className={`${accentText} whitespace-nowrap flex-shrink-0 ml-1 text-xs`}>
-                                            {mine ? "Обмен" : "Свободна"}
+                                            {mine ? "Замена" : "Свободна"}
                                           </div>
                                         </div>
                                         <div className={`${accentText} flex items-center gap-1 mt-1 text-xs`}>
@@ -963,7 +963,7 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
                                           </div>
                                         </div>
                                         <div className={`flex-shrink-0 text-[9px] ${accentText} font-medium px-1.5 py-0.5 rounded border ${baseBorder}`}>
-                                          {pending ? "Обмен" : "Моя"}
+                                          {pending ? "Замена" : "Моя"}
                                         </div>
                                       </div>
                                     );

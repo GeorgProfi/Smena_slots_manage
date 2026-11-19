@@ -129,5 +129,29 @@ sudo nginx -t && sudo systemctl reload nginx
 В `.env` должно быть `NEXT_PUBLIC_APP_URL=https://smenaslots.duckdns.org`, затем:
 
 ```bash
+./deploy/prod-up.sh
+# или:
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
 ```
+
+## 502 Bad Gateway после деплоя
+
+nginx отвечает, но **не может подключиться к приложению** на `127.0.0.1:3000`.
+
+На сервере в каталоге проекта:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+docker logs volunty-app --tail 80
+curl -sS -o /dev/null -w "HTTP %{http_code}\n" http://127.0.0.1:3000/
+ss -tlnp | grep 3000 || true
+```
+
+| Симптом | Что делать |
+|--------|------------|
+| `curl` → connection refused, порт 3000 не слушается | Контейнер `volunty-app` не запущен или **без `docker-compose.prod.yml`** (порт не проброшен на хост). Запуск: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build` |
+| `volunty-app` в статусе Exit / Restarting | Смотрите `docker logs volunty-app`; часто **конфликт порта** (запущены и `dev`, и `prod` compose) — `docker compose ... down`, затем только prod |
+| Сборка оборвалась (OOM / killed) | Мало RAM при `npm run build` внутри Docker — добавьте swap или соберите образ на машине с большим RAM и загрузите на сервер |
+| `curl` → 200/3xx, а снаружи 502 | Nginx смотрит не на тот порт; проверьте `upstream smena_app` → `127.0.0.1:3000` в `/etc/nginx/sites-available/smenaslots` |
+
+Исправление с нашим коммитом **не ломает** старт Node: если 502 появился сразу после `git pull`, почти всегда **не поднялся контейнер app**, а не ошибка в API.

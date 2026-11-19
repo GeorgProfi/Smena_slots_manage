@@ -2,8 +2,9 @@ FROM node:20-alpine AS base
 
 FROM base AS deps
 WORKDIR /app
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 
 FROM base AS builder
 WORKDIR /app

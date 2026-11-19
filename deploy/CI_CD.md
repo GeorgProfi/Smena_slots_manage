@@ -38,6 +38,20 @@
 | `DEPLOY_PATH` | `/home/georg/Smena_slots_manage` | Каталог репозитория на сервере |
 | `DEPLOY_SSH_PORT` | `22` | Опционально |
 
+### Сборка на маленьком VPS (OOM / `signal: killed`)
+
+Образ `migrate` собирается без полного `npm ci` (только `pg`). `deploy/deploy.sh` строит **migrate → app** по очереди (`COMPOSE_PARALLEL_LIMIT=1`).
+
+Если при сборке **app** процесс всё равно убивается — добавьте swap на сервере, например 2 ГБ:
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+grep -q swapfile /etc/fstab || echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
 На сервере один раз:
 
 ```bash

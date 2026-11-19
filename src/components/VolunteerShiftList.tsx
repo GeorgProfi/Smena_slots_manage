@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Calendar, Clock, MapPin, User, ArrowRightLeft, CheckCircle, Link as LinkIcon, Copy, X, AlertCircle, Check, Trash2 } from "lucide-react";
+import { Calendar, Clock, MapPin, ArrowRightLeft, CheckCircle, Link as LinkIcon, Copy, X, AlertCircle, Check, Trash2 } from "lucide-react";
+import VolunteerOpenShifts from "@/components/VolunteerOpenShifts";
 
 type AvailableShift = {
   id: string;
@@ -64,14 +65,13 @@ type VolunteerShiftListProps = {
 };
 
 export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProps) {
-  const [availableShifts, setAvailableShifts] = useState<AvailableShift[]>([]);
   const [availableByEvent, setAvailableByEvent] = useState<EventGroup[]>([]);
   const [myShifts, setMyShifts] = useState<MyShift[]>([]);
   const [swapRequests, setSwapRequests] = useState<SwapRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedSwap, setCopiedSwap] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+  const [takingSlots, setTakingSlots] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -175,7 +175,6 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
             });
           });
 
-          setAvailableShifts(filtered);
           setAvailableByEvent(Object.values(groupedEvents));
         } else {
           // Fallback: if assignments failed to load, just set computed available shifts
@@ -205,7 +204,6 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
               return aEnd.localeCompare(bEnd);
             });
           });
-          setAvailableShifts(filtered);
           setAvailableByEvent(Object.values(groupedEvents));
         }
 
@@ -233,168 +231,38 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
     });
   };
 
-  // Convert ISO datetime to absolute minutes, considering the date
-  const toAbsoluteMinutes = (iso?: string, referenceDate?: string): number | null => {
-    if (!iso) return null;
-    // Parse date (YYYY-MM-DD) and time (HH:MM:SS)
-    const dateStr = iso.slice(0, 10); // "2025-12-29"
-    const hh = Number(iso.slice(11, 13));
-    const mm = Number(iso.slice(14, 16));
-    
-    if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
-    
-    // If no reference date, use the date from this ISO string
-    const ref = referenceDate || dateStr;
-    
-    // Calculate days difference
-    const refDate = new Date(ref + "T00:00:00Z");
-    const curDate = new Date(dateStr + "T00:00:00Z");
-    const daysDiff = Math.floor((curDate.getTime() - refDate.getTime()) / (24 * 60 * 60 * 1000));
-    
-    return daysDiff * 24 * 60 + hh * 60 + mm;
-  };
-
-  // Parse HH:MM from ISO string without applying local timezone offset
-  const toMinutes = (iso?: string) => {
-    if (!iso) return null;
-    const hh = Number(iso.slice(11, 13));
-    const mm = Number(iso.slice(14, 16));
-    if (Number.isFinite(hh) && Number.isFinite(mm)) return hh * 60 + mm;
-    const d = new Date(iso);
-    return d.getUTCHours() * 60 + d.getUTCMinutes();
-  };
-
-  // Assign shifts to horizontal lanes based on overlaps
-  const assignLanes = (
-    shifts: { startISO?: string; endISO?: string }[],
-    refDate: string
-  ): (number | null)[] => {
-    const lanes: (number | null)[] = [];
-    
-    shifts.forEach((shift) => {
-      const startM = toAbsoluteMinutes(shift.startISO, refDate);
-      const endM = toAbsoluteMinutes(shift.endISO, refDate);
-      
-      if (startM === null || endM === null) {
-        lanes.push(null);
-        return;
-      }
-      
-      // Find first available lane (lane where this shift doesn't overlap with any existing shift)
-      let assignedLane = 0;
-      let assigned = false;
-      
-      for (let lane = 0; lane <= shifts.length; lane++) {
-        let canUse = true;
-        
-        // Check if this shift overlaps with any shift already in this lane
-        shifts.forEach((otherShift, otherIdx) => {
-          if (otherIdx >= shifts.indexOf(shift)) return; // Only check shifts processed so far
-          if (lanes[otherIdx] !== lane) return; // Not in this lane
-          
-          const otherStart = toAbsoluteMinutes(otherShift.startISO, refDate);
-          const otherEnd = toAbsoluteMinutes(otherShift.endISO, refDate);
-          
-          if (otherStart !== null && otherEnd !== null) {
-            // Check if shifts overlap (with 1-minute tolerance for adjacent shifts)
-            if (startM < otherEnd && endM > otherStart) {
-              canUse = false;
-            }
-          }
-        });
-        
-        if (canUse) {
-          assignedLane = lane;
-          assigned = true;
-          break;
-        }
-      }
-      
-      lanes.push(assigned ? assignedLane : 0);
-    });
-    
-    return lanes;
-  };
-
-  const buildTimeline = (ranges: { startISO?: string; endISO?: string }[]) => {
-    // Find the earliest date to use as reference
-    const allDates = ranges
-      .map((s) => s.startISO?.slice(0, 10))
-      .filter((d): d is string => !!d);
-    const refDate = allDates.length > 0 ? allDates.sort()[0] : "2025-12-28";
-    
-    const mins = ranges
-      .map((s) => {
-        const startM = toAbsoluteMinutes(s.startISO, refDate);
-        const endM = toAbsoluteMinutes(s.endISO, refDate);
-        return [startM, endM];
-      })
-      .filter(([a, b]) => a !== null && b !== null) as [number, number][];
-    if (!mins.length) return { start: 0, end: 0, ticks: [], scale: 1, refDate, lanes: [] };
-    const rawStart = Math.min(...mins.map(([a]) => a));
-    const rawEnd = Math.max(...mins.map(([, b]) => b));
-    const start = Math.floor(rawStart / 30) * 30; // round to 30-min slots
-    const end = Math.ceil(rawEnd / 30) * 30;
-    const ticks: number[] = [];
-    for (let t = start; t <= end; t += 60) ticks.push(t);
-    const scale = 1.1; // px per minute
-    const lanes = assignLanes(ranges, refDate);
-    const maxLane = Math.max(...lanes.filter((l) => l !== null)) + 1 || 1;
-    return { start, end, ticks, scale, refDate, lanes, maxLane };
-  };
-
   const showFeedback = (message: string, type: "success" | "error") => {
     setFeedback({ message, type });
     setTimeout(() => setFeedback(null), 3000);
   };
 
-  const handleSignup = async (shiftId: string) => {
-    const shiftToMove = availableShifts.find((s) => s.id === shiftId);
-    if (!shiftToMove) return;
-
-    const res = await fetch("/api/volunteer/assignments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sub_shift_id: shiftId }),
-    });
-
-    if (!res.ok) {
-      const { error } = await res.json().catch(() => ({ error: "Не удалось записаться" }));
-      showFeedback(error ?? "Не удалось записаться на эту смену.", "error");
-      return;
+  const handleTakeSlots = async (shiftIds: string[]) => {
+    if (!shiftIds.length || takingSlots) return;
+    setTakingSlots(true);
+    try {
+      for (const shiftId of shiftIds) {
+        const res = await fetch("/api/volunteer/assignments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sub_shift_id: shiftId }),
+        });
+        if (!res.ok) {
+          const { error } = await res.json().catch(() => ({ error: "Не удалось записаться" }));
+          showFeedback(error ?? "Не удалось записаться на одну из смен.", "error");
+          await loadData();
+          return;
+        }
+      }
+      await loadData();
+      showFeedback(
+        shiftIds.length === 1
+          ? "Вы записаны на выбранную смену."
+          : `Записано смен: ${shiftIds.length}.`,
+        "success"
+      );
+    } finally {
+      setTakingSlots(false);
     }
-
-    const saved = await res.json();
-
-    setAvailableShifts((prev) => prev.filter((s) => s.id !== shiftId));
-    setAvailableByEvent((prev) =>
-      prev
-        .map((evt) => ({
-          ...evt,
-          subShifts: evt.subShifts.filter((s) => s.id !== shiftId),
-        }))
-        .filter((evt) => evt.subShifts.length > 0)
-    );
-
-    setMyShifts([
-      ...myShifts,
-      {
-        id: saved.sub_shift_id ?? shiftToMove.id,
-        assignmentId: saved.id,
-        eventId: shiftToMove.eventId,
-        eventTitle: saved.event_title ?? shiftToMove.eventTitle,
-        role: saved.role_name ?? shiftToMove.role,
-        date: shiftToMove.date,
-        startTime: shiftToMove.startTime,
-        endTime: shiftToMove.endTime,
-        startISO: shiftToMove.startISO,
-        endISO: shiftToMove.endISO,
-        location: saved.event_location ?? shiftToMove.location,
-        status: saved.status ?? "confirmed",
-      },
-    ]);
-
-    showFeedback(`Вы записаны: ${shiftToMove.role}, ${shiftToMove.eventTitle}.`, "success");
   };
 
   const handleSwapRequest = async (assignmentId: string) => {
@@ -614,493 +482,13 @@ export default function VolunteerShiftList({ activeTab }: VolunteerShiftListProp
 
       {activeTab === "open-shifts" && (
         <section>
-          <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <User className="h-5 w-5 text-blue-600" />
-            Доступные смены
-          </h2>
-
-          {availableByEvent.length === 0 ? (
-            <p className="text-slate-500 italic">Сейчас нет свободных смен.</p>
-          ) : (
-            <div className="space-y-4">
-              {availableByEvent.map((evt) => {
-                const allConflicts = evt.subShifts.every((s) => isOverlapping(s));
-                const anyAvailable = evt.subShifts.some((s) => !isOverlapping(s));
-                return (
-                  <div
-                    key={evt.id}
-                    className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"
-                  >
-                    <button
-                      onClick={() => setExpandedEventId((prev) => (prev === evt.id ? null : evt.id))}
-                      className="w-full flex items-start justify-between gap-4 p-4 hover:bg-slate-50 text-left"
-                    >
-                      <div className="flex flex-col gap-1">
-                        <span className="text-sm text-slate-500">Слот</span>
-                        <span className="text-lg font-semibold text-slate-900">{evt.title}</span>
-                        <div className="text-sm text-slate-600 flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span>{evt.start_time?.slice(0, 10)}</span>
-                          <Clock className="h-4 w-4 ml-3" />
-                          <span>
-                            {evt.start_time?.slice(11, 16)} - {evt.end_time?.slice(11, 16)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {!anyAvailable && (
-                          <span className="rounded-full bg-amber-100 text-amber-800 text-xs font-semibold px-3 py-1">
-                            Все пересекаются
-                          </span>
-                        )}
-                        {anyAvailable && (
-                          <span className="rounded-full bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-1">
-                            {evt.subShifts.length} слотов
-                          </span>
-                        )}
-                        <span className="text-sm text-slate-500">
-                          {expandedEventId === evt.id ? "Скрыть" : "Показать"}
-                        </span>
-                      </div>
-                    </button>
-
-                    {expandedEventId === evt.id && (
-                      <div className="border-t border-slate-200 p-4">
-                        {(() => {
-                          const acceptedBlocks = swapRequests.filter(
-                            (r) => r.status === "accepted" && r.event_id === evt.id
-                          );
-                          const openBlocks = swapRequests.filter(
-                            (r) => r.status === "open" && r.event_id === evt.id
-                          );
-                          const myBlocks = myShifts.filter((m) => m.eventId === evt.id);
-                          const meta = buildTimeline([
-                            ...evt.subShifts,
-                            ...acceptedBlocks.map((r) => ({ startISO: r.start_time, endISO: r.end_time })),
-                            ...openBlocks.map((r) => ({ startISO: r.start_time, endISO: r.end_time })),
-                            ...myBlocks.map((m) => ({ startISO: m.startISO, endISO: m.endISO })),
-                          ]);
-                          const totalHeight = Math.max(meta.end - meta.start, 60) * meta.scale;
-                          return (
-                            <div className="flex gap-4">
-                              {/* Time ruler */}
-                              <div className="w-16 text-right text-xs text-slate-500 relative" style={{ height: `${totalHeight}px` }}>
-                                {meta.ticks.map((t) => {
-                                  const top = (t - meta.start) * meta.scale;
-                                  const hours = (Math.floor(t / 60) % 24)
-                                    .toString()
-                                    .padStart(2, "0");
-                                  const mins = (t % 60).toString().padStart(2, "0");
-                                  return (
-                                    <div key={t} className="absolute" style={{ top }}>
-                                      {hours}:{mins}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-
-                              {/* Timeline */}
-                              <div className="flex-1 relative overflow-x-auto" style={{ height: `${totalHeight}px` }}>
-                                {/* horizontal grid lines */}
-                                {meta.ticks.map((t) => {
-                                  const top = (t - meta.start) * meta.scale;
-                                  return (
-                                    <div
-                                      key={`line-${t}`}
-                                      className="absolute left-0 right-0 border-t border-slate-100"
-                                      style={{ top, minWidth: "100%" }}
-                                    />
-                                  );
-                                })}
-
-                                {/* Container for all lanes to expand horizontally if needed */}
-                                <div style={{ minWidth: `${Math.max((meta.maxLane ?? 1) * 260, 300)}px`, height: "100%", position: "relative" }}>
-                                  {evt.subShifts.map((shift, idx) => {
-                                    const conflict = isOverlapping(shift);
-                                    const startM = toAbsoluteMinutes(shift.startISO, meta.refDate) ?? meta.start;
-                                    const endM = toAbsoluteMinutes(shift.endISO, meta.refDate) ?? meta.start;
-                                    const top = (startM - meta.start) * meta.scale;
-                                    const durationMins = endM - startM;
-                                    const height = Math.max(durationMins * meta.scale, 48);
-                                    const lane = meta.lanes[idx] ?? 0;
-                                    const laneWidth = 250;
-                                    const laneGap = 8;
-                                    const left = lane * (laneWidth + laneGap);
-                                    const isVeryShort = durationMins < 120;
-                                    
-                                    // Minimal clickable card for shifts < 2 hours
-                                    if (isVeryShort) {
-                                      return (
-                                        <div
-                                          key={shift.id}
-                                          className={`absolute rounded-lg border transition-all shadow-sm ${
-                                            conflict
-                                              ? "bg-rose-50 border-rose-200"
-                                              : "bg-white border-slate-200 hover:shadow-md hover:border-slate-300"
-                                          } flex items-center justify-between gap-2 px-2 py-1.5`}
-                                          style={{
-                                            top,
-                                            left,
-                                            width: laneWidth,
-                                            height,
-                                          }}
-                                        >
-                                          <div className="flex-1 min-w-0">
-                                            <div className={`font-semibold leading-tight text-xs truncate ${
-                                              conflict ? "text-rose-800" : "text-slate-900"
-                                            }`}>
-                                              {shift.role}
-                                            </div>
-                                            <div className={`text-[10px] tabular-nums mt-0.5 ${
-                                              conflict ? "text-rose-600" : "text-slate-600"
-                                            }`}>
-                                              {shift.startTime} - {shift.endTime}
-                                            </div>
-                                          </div>
-                                          <button
-                                            onClick={() => handleSignup(shift.id)}
-                                            disabled={conflict}
-                                            className={`flex-shrink-0 rounded px-2 py-0.5 text-[10px] font-medium leading-tight ${
-                                              conflict
-                                                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                                                : "bg-slate-900 text-white hover:bg-slate-800"
-                                            }`}
-                                          >
-                                            Запись
-                                          </button>
-                                        </div>
-                                      );
-                                    }
-                                    
-                                    // Full card for longer shifts
-                                    return (
-                                      <div
-                                        key={shift.id}
-                                        className={`absolute rounded-lg border transition-all shadow-sm ${
-                                          conflict
-                                            ? "bg-rose-50 border-rose-200"
-                                            : "bg-white border-slate-200 hover:shadow-md hover:border-slate-300"
-                                        }`}
-                                        style={{
-                                          top,
-                                          left,
-                                          width: laneWidth,
-                                          height,
-                                          display: "flex",
-                                          flexDirection: "column",
-                                        }}
-                                      >
-                                        <div className="px-3 pt-2 pb-1.5">
-                                          <div className="flex items-start justify-between gap-1">
-                                            <div className="flex-1 min-w-0">
-                                              <div className="font-semibold text-slate-900 leading-tight text-sm">
-                                                {shift.role}
-                                              </div>
-                                            </div>
-                                            <div className="text-slate-500 whitespace-nowrap flex-shrink-0 ml-1 text-xs">
-                                              осталось {shift.capacity - shift.spotsFilled}
-                                            </div>
-                                          </div>
-                                          
-                                          <div className="text-slate-600 flex items-center gap-1 mt-1 text-xs">
-                                            <Clock className="h-3 w-3" />
-                                            <span className="tabular-nums">
-                                              {shift.startTime} - {shift.endTime}
-                                            </span>
-                                          </div>
-                                          
-                                          {shift.location && height > 80 && (
-                                            <div className="text-xs text-slate-600 flex items-center gap-1 mt-1">
-                                              <MapPin className="h-3 w-3 flex-shrink-0" />
-                                              <span className="truncate">{shift.location}</span>
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        <div className="flex-1 flex flex-col justify-end px-2 pb-2 gap-2">
-                                          <button
-                                            onClick={() => handleSignup(shift.id)}
-                                            disabled={conflict}
-                                            className={`w-full rounded-md transition-colors text-xs font-medium py-1 ${
-                                              conflict
-                                                ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                                                : "bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950"
-                                            }`}
-                                          >
-                                            Записаться
-                                          </button>
-                                          {conflict && (
-                                            <p className="text-[10px] text-rose-700 leading-tight text-center">Пересечение</p>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-
-                                {openBlocks.map((r, idx) => {
-                                  const startM = toAbsoluteMinutes(r.start_time, meta.refDate) ?? meta.start;
-                                  const endM = toAbsoluteMinutes(r.end_time, meta.refDate) ?? meta.start;
-                                  const top = (startM - meta.start) * meta.scale;
-                                  const durationMins = endM - startM;
-                                  const height = Math.max(durationMins * meta.scale, 48);
-                                  const laneWidth = 250;
-                                  const laneGap = 8;
-                                  const maxLane = meta.maxLane ?? 1;
-                                  const lane = (evt.subShifts.length + idx) % maxLane;
-                                  const left = lane * (laneWidth + laneGap);
-                                  const mine = r.is_mine;
-                                  const baseBorder = mine ? "border-amber-200" : "border-blue-200";
-                                  const baseBg = mine ? "bg-amber-50" : "bg-blue-50";
-                                  const baseText = mine ? "text-amber-900" : "text-blue-900";
-                                  const accentText = mine ? "text-amber-700" : "text-blue-700";
-                                  const isVeryShort = durationMins < 120;
-                                  
-                                  if (isVeryShort) {
-                                    return (
-                                      <div
-                                        key={`open-${r.id}`}
-                                        className={`absolute rounded-lg border ${baseBorder} ${baseBg} transition-all shadow-sm flex items-center justify-between gap-2 px-2 py-1.5`}
-                                        style={{
-                                          top,
-                                          left,
-                                          width: laneWidth,
-                                          height,
-                                        }}
-                                      >
-                                        <div className="flex-1 min-w-0">
-                                          <div className={`font-semibold ${baseText} leading-tight text-xs truncate`}>
-                                            {r.role_name}
-                                          </div>
-                                          <div className={`text-[10px] tabular-nums ${accentText} mt-0.5`}>
-                                            {r.start_time.slice(11, 16)} - {r.end_time.slice(11, 16)}
-                                          </div>
-                                        </div>
-                                        <div className={`flex-shrink-0 text-[9px] ${accentText} font-medium px-1.5 py-0.5 rounded border ${baseBorder}`}>
-                                          {mine ? "Замена" : "Свободна"}
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-                                  
-                                  return (
-                                    <div
-                                      key={`open-${r.id}`}
-                                      className={`absolute rounded-lg border ${baseBorder} ${baseBg} transition-all shadow-sm`}
-                                      style={{
-                                        top,
-                                        left,
-                                        width: laneWidth,
-                                        height,
-                                        display: "flex",
-                                        flexDirection: "column",
-                                      }}
-                                    >
-                                      <div className="px-3 pt-2 pb-1.5">
-                                        <div className="flex items-start justify-between gap-1">
-                                          <div className="flex-1 min-w-0">
-                                            <div className={`font-semibold ${baseText} leading-tight text-sm`}>
-                                              {r.role_name}
-                                            </div>
-                                          </div>
-                                          <div className={`${accentText} whitespace-nowrap flex-shrink-0 ml-1 text-xs`}>
-                                            {mine ? "Замена" : "Свободна"}
-                                          </div>
-                                        </div>
-                                        <div className={`${accentText} flex items-center gap-1 mt-1 text-xs`}>
-                                          <Clock className="h-3 w-3" />
-                                          <span className="tabular-nums">
-                                            {r.start_time.slice(11, 16)} - {r.end_time.slice(11, 16)}
-                                          </span>
-                                        </div>
-                                        {r.event_location && height > 80 && (
-                                          <div className={`text-xs ${accentText} flex items-center gap-1 mt-1`}>
-                                            <MapPin className="h-3 w-3 flex-shrink-0" />
-                                            <span className="truncate">{r.event_location}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-
-                                {myBlocks.map((m, idx) => {
-                                  const startM = toAbsoluteMinutes(m.startISO, meta.refDate) ?? meta.start;
-                                  const endM = toAbsoluteMinutes(m.endISO, meta.refDate) ?? meta.start;
-                                  const top = (startM - meta.start) * meta.scale;
-                                  const durationMins = endM - startM;
-                                  const height = Math.max(durationMins * meta.scale, 48);
-                                  const laneWidth = 250;
-                                  const laneGap = 8;
-                                  const maxLane = meta.maxLane ?? 1;
-                                  const lane = (evt.subShifts.length + openBlocks.length + idx) % maxLane;
-                                  const left = lane * (laneWidth + laneGap);
-                                  const pending = m.status === "pending_swap";
-                                  const baseBorder = pending ? "border-amber-300" : "border-green-300";
-                                  const baseBg = pending ? "bg-amber-50" : "bg-green-50";
-                                  const baseText = pending ? "text-amber-900" : "text-green-900";
-                                  const accentText = pending ? "text-amber-800" : "text-green-800";
-                                  const isVeryShort = durationMins < 120;
-                                  
-                                  if (isVeryShort) {
-                                    return (
-                                      <div
-                                        key={`my-${m.assignmentId}`}
-                                        className={`absolute rounded-lg border ${baseBorder} ${baseBg} transition-all shadow-sm flex items-center justify-between gap-2 px-2 py-1.5`}
-                                        style={{
-                                          top,
-                                          left,
-                                          width: laneWidth,
-                                          height,
-                                        }}
-                                      >
-                                        <div className="flex-1 min-w-0">
-                                          <div className={`font-semibold ${baseText} leading-tight text-xs truncate`}>
-                                            {m.role}
-                                          </div>
-                                          <div className={`text-[10px] tabular-nums ${accentText} mt-0.5`}>
-                                            {m.startTime} - {m.endTime}
-                                          </div>
-                                        </div>
-                                        <div className={`flex-shrink-0 text-[9px] ${accentText} font-medium px-1.5 py-0.5 rounded border ${baseBorder}`}>
-                                          {pending ? "Замена" : "Моя"}
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-                                  
-                                  return (
-                                    <div
-                                      key={`my-${m.assignmentId}`}
-                                      className={`absolute rounded-lg border ${baseBorder} ${baseBg} transition-all shadow-sm`}
-                                      style={{
-                                        top,
-                                        left,
-                                        width: laneWidth,
-                                        height,
-                                        display: "flex",
-                                        flexDirection: "column",
-                                      }}
-                                    >
-                                      <div className="px-3 pt-2 pb-1.5">
-                                        <div className="flex items-start justify-between gap-1">
-                                          <div className="flex-1 min-w-0">
-                                            <div className={`font-semibold ${baseText} leading-tight text-sm`}>
-                                              {m.role}
-                                            </div>
-                                          </div>
-                                          <div className={`${accentText} whitespace-nowrap flex-shrink-0 ml-1 text-xs`}>
-                                            {pending ? "Заявка" : "Моя смена"}
-                                          </div>
-                                        </div>
-                                        <div className={`${accentText} flex items-center gap-1 mt-1 text-xs`}>
-                                          <Clock className="h-3 w-3" />
-                                          <span className="tabular-nums">
-                                            {m.startTime} - {m.endTime}
-                                          </span>
-                                        </div>
-                                        {m.location && height > 80 && (
-                                          <div className={`text-xs ${accentText} flex items-center gap-1 mt-1`}>
-                                            <MapPin className="h-3 w-3 flex-shrink-0" />
-                                            <span className="truncate">{m.location}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-
-                                {acceptedBlocks.map((r, idx) => {
-                                  const startM = toAbsoluteMinutes(r.start_time, meta.refDate) ?? meta.start;
-                                  const endM = toAbsoluteMinutes(r.end_time, meta.refDate) ?? meta.start;
-                                  const top = (startM - meta.start) * meta.scale;
-                                  const durationMins = endM - startM;
-                                  const height = Math.max(durationMins * meta.scale, 48);
-                                  const laneWidth = 250;
-                                  const laneGap = 8;
-                                  const maxLane = meta.maxLane ?? 1;
-                                  const lane = (evt.subShifts.length + openBlocks.length + myBlocks.length + idx) % maxLane;
-                                  const left = lane * (laneWidth + laneGap);
-                                  const isVeryShort = durationMins < 120;
-                                  
-                                  if (isVeryShort) {
-                                    return (
-                                      <div
-                                        key={`accepted-${r.id}`}
-                                        className="absolute rounded-lg border border-emerald-300 bg-emerald-50 transition-all shadow-sm flex items-center justify-between gap-2 px-2 py-1.5"
-                                        style={{
-                                          top,
-                                          left,
-                                          width: laneWidth,
-                                          height,
-                                        }}
-                                      >
-                                        <div className="flex-1 min-w-0">
-                                          <div className="font-semibold text-emerald-900 leading-tight text-xs truncate">
-                                            {r.role_name}
-                                          </div>
-                                          <div className="text-[10px] tabular-nums text-emerald-800 mt-0.5">
-                                            {r.start_time.slice(11, 16)} - {r.end_time.slice(11, 16)}
-                                          </div>
-                                        </div>
-                                        <div className="flex-shrink-0 text-[9px] text-emerald-700 font-medium px-1.5 py-0.5 rounded border border-emerald-300">
-                                          Принято
-                                        </div>
-                                      </div>
-                                    );
-                                  }
-                                  
-                                  return (
-                                    <div
-                                      key={`accepted-${r.id}`}
-                                      className="absolute rounded-lg border border-emerald-300 bg-emerald-50 transition-all shadow-sm"
-                                      style={{
-                                        top,
-                                        left,
-                                        width: laneWidth,
-                                        height,
-                                        display: "flex",
-                                        flexDirection: "column",
-                                      }}
-                                    >
-                                      <div className="px-3 pt-2 pb-1.5">
-                                        <div className="flex items-start justify-between gap-1">
-                                          <div className="flex-1 min-w-0">
-                                            <div className="font-semibold text-emerald-900 leading-tight text-sm">
-                                              {r.role_name}
-                                            </div>
-                                          </div>
-                                          <div className="text-emerald-700 whitespace-nowrap flex-shrink-0 ml-1 text-xs">
-                                            Принято
-                                          </div>
-                                        </div>
-                                        <div className="text-emerald-800 flex items-center gap-1 mt-1 text-xs">
-                                          <Clock className="h-3 w-3" />
-                                          <span className="tabular-nums">
-                                            {r.start_time.slice(11, 16)} - {r.end_time.slice(11, 16)}
-                                          </span>
-                                        </div>
-                                        {r.event_location && height > 80 && (
-                                          <div className="text-xs text-emerald-800 flex items-center gap-1 mt-1">
-                                            <MapPin className="h-3 w-3 flex-shrink-0" />
-                                            <span className="truncate">{r.event_location}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                                </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <h2 className="text-xl font-bold text-slate-900 mb-4">Свободные смены</h2>
+          <VolunteerOpenShifts
+            availableByEvent={availableByEvent}
+            isOverlapping={isOverlapping}
+            onTakeSlots={handleTakeSlots}
+            taking={takingSlots}
+          />
         </section>
       )}
     </div>

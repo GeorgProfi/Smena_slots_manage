@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import SuperadminTransfer from "@/components/SuperadminTransfer";
 import { Save, Loader2 } from "lucide-react";
+import {
+  parseDeliveryPointsSetting,
+  serializeDeliveryPoints,
+} from "@/lib/delivery-points";
 import { roleLabel } from "@/lib/i18n/labels";
 
 const timezones = [
@@ -35,6 +39,7 @@ export default function AdminSettingsPage() {
   const [inviting, setInviting] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(true);
   const [reminderHours, setReminderHours] = useState<number>(24);
+  const [deliveryPointsText, setDeliveryPointsText] = useState("");
 
   // User preferences
   const [prefLoading, setPrefLoading] = useState(true);
@@ -59,6 +64,9 @@ export default function AdminSettingsPage() {
         setNotificationsEnabled((data.notifications_enabled ?? "true") === "true");
         const hours = parseInt(data.reminder_hours_before_shift ?? "24", 10);
         setReminderHours(Number.isNaN(hours) ? 24 : hours);
+        setDeliveryPointsText(
+          parseDeliveryPointsSetting(data.delivery_points).join("\n")
+        );
       }
     } catch (error) {
       console.error("Failed to load settings:", error);
@@ -222,6 +230,39 @@ export default function AdminSettingsPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Delivery points */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+            <div className="p-6">
+              <div className="flex flex-col gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">Точки доставки</h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Список для выбора при создании слота в календаре (одна точка на строку).
+                  </p>
+                </div>
+                <textarea
+                  value={deliveryPointsText}
+                  onChange={(e) => setDeliveryPointsText(e.target.value)}
+                  onBlur={() =>
+                    saveSetting(
+                      "delivery_points",
+                      serializeDeliveryPoints(
+                        deliveryPointsText
+                          .split(/\r?\n/)
+                          .map((s) => s.trim())
+                          .filter(Boolean)
+                      )
+                    )
+                  }
+                  disabled={saving}
+                  rows={6}
+                  placeholder={"Точка на Арбате\nТочка на Тверской"}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 disabled:opacity-50 font-mono text-sm"
+                />
               </div>
             </div>
           </div>

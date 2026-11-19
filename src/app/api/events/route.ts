@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { asRows } from "@/lib/db/query";
+import { isValidUuid } from "@/lib/uuid";
 import { compareDateTimeFields } from "@/lib/timezone";
 
 function getAdmin() {
@@ -154,7 +155,7 @@ export async function POST(request: Request) {
     const admin = getAdmin();
     const { data: ev, error: evErr } = await admin
       .from("events")
-      .insert({ title, start_time, end_time })
+      .insert({ title, start_time, end_time, location: title })
       .select("id,title,start_time,end_time")
       .single();
     if (evErr) throw evErr;
@@ -202,7 +203,7 @@ export async function PUT(request: Request) {
     const admin = getAdmin();
     const { error: evErr } = await admin
       .from("events")
-      .update({ title, start_time, end_time })
+      .update({ title, start_time, end_time, location: title })
       .eq("id", id);
     if (evErr) throw evErr;
 
@@ -230,7 +231,7 @@ export async function PUT(request: Request) {
 
       // First, update by id when provided (preserves assignments even if times/role change)
       for (const s of sub_shifts) {
-        if (s.id) {
+        if (s.id && isValidUuid(s.id)) {
           payloadIds.add(s.id);
           const { error: upErr } = await admin
             .from("sub_shifts")
@@ -252,7 +253,7 @@ export async function PUT(request: Request) {
       });
 
       for (const s of sub_shifts) {
-        if (!s.id) {
+        if (!s.id || !isValidUuid(s.id)) {
           const key = `${s.role_name}|${s.start_time}|${s.end_time}`;
           const existing = existingByKey.get(key);
           if (existing) {

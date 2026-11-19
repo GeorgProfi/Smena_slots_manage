@@ -171,4 +171,5 @@ INSERT INTO organization_settings (key, value) VALUES
   ('organization_name', 'Смена слоты'),
   ('allow_self_signup', 'true'),
   ('notifications_enabled', 'true'),
-  ('reminder_hours_before_shift', '24');
+  ('reminder_hours_before_shift', '24'),
+  ('delivery_points', '[]');

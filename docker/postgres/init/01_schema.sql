@@ -62,7 +62,7 @@ CREATE TABLE swap_requests (
   assignment_id UUID NOT NULL REFERENCES shift_assignments(id) ON DELETE CASCADE,
   requester_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'accepted', 'cancelled')),
-  accepted_by_id UUID REFERENCES profiles(id),
+  accepted_by_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   share_token TEXT UNIQUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -73,7 +73,7 @@ CREATE INDEX idx_swap_requests_share_token ON swap_requests(share_token);
 CREATE TABLE audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   action TEXT NOT NULL,
-  performed_by UUID REFERENCES profiles(id),
+  performed_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
   target_resource TEXT,
   target_id UUID,
   details JSONB,
@@ -85,7 +85,7 @@ CREATE TABLE organization_settings (
   key TEXT NOT NULL UNIQUE,
   value TEXT NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_by UUID REFERENCES profiles(id)
+  updated_by UUID REFERENCES profiles(id) ON DELETE SET NULL
 );
 
 CREATE TABLE user_preferences (

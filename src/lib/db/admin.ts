@@ -18,6 +18,17 @@ export function createAdminClient() {
           return { data: { users: rows }, error: null };
         },
         async deleteUser(userId: string) {
+          await query(
+            "UPDATE swap_requests SET accepted_by_id = NULL WHERE accepted_by_id = $1",
+            [userId]
+          );
+          await query("UPDATE audit_logs SET performed_by = NULL WHERE performed_by = $1", [
+            userId,
+          ]);
+          await query(
+            "UPDATE organization_settings SET updated_by = NULL WHERE updated_by = $1",
+            [userId]
+          );
           const { rowCount } = await query("DELETE FROM auth_users WHERE id = $1", [userId]);
           if (rowCount === 0) {
             return { data: null, error: { message: "User not found" } };

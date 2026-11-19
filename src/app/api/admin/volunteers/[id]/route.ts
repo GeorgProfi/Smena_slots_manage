@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/db/admin";
+import { createAdminClient, setUserPassword } from "@/lib/db/admin";
 import { query } from "@/lib/db/pool";
 import { requireAdmin } from "@/lib/auth/require-admin";
+import { validatePassword } from "@/lib/auth/password";
 
 function adminClient() {
   return createAdminClient();
@@ -101,7 +102,8 @@ export async function PATCH(
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    const { action } = await request.json();
+    const body = await request.json();
+    const action = body?.action as string | undefined;
     const userId = params.id;
 
     if (action === "promote") {
@@ -156,18 +158,45 @@ export async function PATCH(
         );
       }
 
-      // Delete from auth
       const { error: deleteAuthErr } = await admin.auth.admin.deleteUser(userId);
       if (deleteAuthErr) throw deleteAuthErr;
 
-      // Delete profile (cascade will handle assignments)
-      const { error: deleteProfileErr } = await admin
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
-      if (deleteProfileErr) throw deleteProfileErr;
-
       return NextResponse.json({ success: true, message: "User account deleted" });
+    }
+
+    if (action === "set_password") {
+      const password = typeof body.password === "string" ? body.password : "";
+      const passwordError = validatePassword(password);
+      if (passwordError) {
+        return NextResponse.json({ error: passwordError }, { status: 400 });
+      }
+
+      if (userId === auth.user.id) {
+        return NextResponse.json(
+          { error: "Свой пароль меняйте в разделе «Пароль» в меню аккаунта" },
+          { status: 400 }
+        );
+      }
+
+      const admin = adminClient();
+      const { data: profile, error: fetchErr } = await admin
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+      if (fetchErr || !profile) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      if (profile.role === "super_admin" && auth.role !== "super_admin") {
+        return NextResponse.json(
+          { error: "Только суперадминистратор может менять пароль суперадминистратора" },
+          { status: 403 }
+        );
+      }
+
+      await setUserPassword(userId, password);
+      return NextResponse.json({ success: true, message: "Password updated" });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });

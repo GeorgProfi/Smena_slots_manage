@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Mail, Clock, ChevronRight, Search, Shield, AlertCircle } from "lucide-react";
+import { Users, Mail, Clock, ChevronRight, Search, Shield, AlertCircle, KeyRound } from "lucide-react";
 import { roleLabel, UI } from "@/lib/i18n/labels";
+import { MIN_PASSWORD_LENGTH, validatePassword } from "@/lib/auth/password";
 
 interface Volunteer {
   id: string;
@@ -44,8 +45,12 @@ export default function AdminVolunteersList() {
   const [selectedVolunteer, setSelectedVolunteer] = useState<VolunteerDetail | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showPastShifts, setShowPastShifts] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
     loadVolunteers();
@@ -58,6 +63,7 @@ export default function AdminVolunteersList() {
       if (res.ok) {
         const data = await res.json();
         setCurrentUserRole(data.user?.role);
+        setCurrentUserId(data.user?.id ?? null);
       }
     } catch (e) {
       console.error("Failed to load current user", e);
@@ -83,6 +89,9 @@ export default function AdminVolunteersList() {
       if (res.ok) {
         const data = await res.json();
         setSelectedVolunteer(data);
+        setNewPassword("");
+        setConfirmPassword("");
+        setPasswordError(null);
         setShowDetail(true);
       }
     } catch (e) {
@@ -112,6 +121,45 @@ export default function AdminVolunteersList() {
       } else {
         const err = await res.json();
         alert(`Ошибка: ${err.error}`);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const canSetPassword =
+    selectedVolunteer &&
+    currentUserId &&
+    selectedVolunteer.id !== currentUserId &&
+    (selectedVolunteer.role !== "super_admin" || currentUserRole === "super_admin");
+
+  const handleSetPassword = async () => {
+    if (!selectedVolunteer) return;
+    setPasswordError(null);
+    const validationError = validatePassword(newPassword);
+    if (validationError) {
+      setPasswordError(validationError);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Пароли не совпадают");
+      return;
+    }
+    if (!confirm(`Установить новый пароль для ${selectedVolunteer.full_name}?`)) return;
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/admin/volunteers/${selectedVolunteer.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set_password", password: newPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert("Пароль обновлён");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        setPasswordError(data.error ?? "Не удалось обновить пароль");
       }
     } finally {
       setActionLoading(false);
@@ -333,7 +381,53 @@ export default function AdminVolunteersList() {
               )}
             </div>
 
-            <div className="p-6 border-t border-slate-200 dark:border-slate-700 space-y-2">
+            <div className="p-6 border-t border-slate-200 dark:border-slate-700 space-y-4">
+              {canSetPassword && (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+                  <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2 text-sm">
+                    <KeyRound className="h-4 w-4" />
+                    Новый пароль
+                  </h3>
+                  {passwordError && (
+                    <p className="text-sm text-red-600 dark:text-red-400">{passwordError}</p>
+                  )}
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder={`Минимум ${MIN_PASSWORD_LENGTH} символов`}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Повторите пароль"
+                    className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSetPassword}
+                    disabled={actionLoading || !newPassword || !confirmPassword}
+                    className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg font-medium hover:bg-slate-800 transition-colors disabled:opacity-50 text-sm"
+                  >
+                    Сохранить пароль
+                  </button>
+                </div>
+              )}
+              {selectedVolunteer.id === currentUserId && (
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Свой пароль можно сменить в меню аккаунта → «Пароль».
+                </p>
+              )}
+              {selectedVolunteer.role === "super_admin" && currentUserRole !== "super_admin" && (
+                <p className="text-sm text-slate-500 dark:text-slate-400 italic">
+                  Пароль суперадминистратора может изменить только суперадминистратор.
+                </p>
+              )}
+
               {/* Action Buttons */}
               <div className="flex gap-2">
                 {selectedVolunteer.role === "volunteer" && (

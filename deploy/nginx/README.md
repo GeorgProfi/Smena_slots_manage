@@ -25,7 +25,7 @@ chmod +x deploy/deploy.sh
 # или вручную: docker compose … run --rm migrate && … up -d --build app
 ```
 
-Автодеплой после push в `main` / `classic_auth` — см. [`deploy/CI_CD.md`](../CI_CD.md).
+Ручной деплой через GitHub Actions — см. [`deploy/CI_CD.md`](../CI_CD.md).
 
 Не добавляйте `docker-compose.dev.yml` вместе с `prod` — будет двойной проброс :3000 и ошибка `address already in use`.
 

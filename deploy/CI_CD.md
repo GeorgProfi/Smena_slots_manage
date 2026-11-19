@@ -8,12 +8,24 @@
 - `npm run build`
 - Postgres 16: полная схема из `docker/postgres/init/01_schema.sql`, затем `npm run db:migrate` (дважды — проверка идемпотентности)
 
-## CD (`/.github/workflows/deploy.yml`)
+## CD (только вручную)
 
-После успешного push в `main` или `classic_auth` (или вручную **Actions → Deploy → Run workflow**):
+Автодеплой после push **отключён**. Варианты:
 
-1. SSH на сервер
-2. `git pull` нужной ветки
+### 1. Workflow **Deploy** (только выкладка)
+
+**Actions → Deploy → Run workflow** — выберите ветку (`classic_auth` / `main`) и запустите.
+
+### 2. Workflow **CI** с деплоем после проверок
+
+**Actions → CI → Run workflow** — включите **«После успешного CI задеплоить на сервер»**, выберите ветку.
+
+Оба варианта используют окружение **`production`** (в GitHub: *Settings → Environments → production* можно включить **Required reviewers** — дополнительная ручная кнопка «Approve deployment»).
+
+На сервере:
+
+1. SSH
+2. `git pull` выбранной ветки
 3. `deploy/deploy.sh`: `docker compose build app` → `migrate` → `up -d`
 
 ### Секреты в GitHub (Settings → Secrets and variables → Actions)

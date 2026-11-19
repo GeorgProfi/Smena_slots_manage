@@ -20,8 +20,12 @@ cp docker/app.prod.env.example .env
 Запуск с прод-привязкой портов (приложение только на `127.0.0.1:3000`, не снаружи):
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+chmod +x deploy/deploy.sh
+./deploy/deploy.sh
+# или вручную: docker compose … run --rm migrate && … up -d --build app
 ```
+
+Автодеплой после push в `main` / `classic_auth` — см. [`deploy/CI_CD.md`](../CI_CD.md).
 
 Не добавляйте `docker-compose.dev.yml` вместе с `prod` — будет двойной проброс :3000 и ошибка `address already in use`.
 

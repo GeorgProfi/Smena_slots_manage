@@ -63,7 +63,9 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 - **iron-session** HTTP-only cookie sessions (no Supabase)
 - **pg** connection pool from API routes
 
-Legacy SQL under `supabase/migrations/` is kept for reference; the active schema is `docker/postgres/init/01_schema.sql`.
+Legacy SQL under `supabase/migrations/` is kept for reference; the active schema is `docker/postgres/init/01_schema.sql`. Инкрементальные изменения — `docker/postgres/migrations/` (`npm run db:migrate` или сервис `migrate` в Compose).
+
+**CI/CD:** GitHub Actions — lint, build, проверка миграций; деплой на сервер после успешного CI — [`deploy/CI_CD.md`](deploy/CI_CD.md).
 
 ## Integrations
 

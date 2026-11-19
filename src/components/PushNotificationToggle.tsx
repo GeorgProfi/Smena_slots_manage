@@ -171,7 +171,7 @@ export default function PushNotificationToggle() {
             <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
             <div>
               <p className="text-sm font-medium text-blue-900">
-                Apple device? Here's what to do
+                Apple device? Here&apos;s what to do
               </p>
               <p className="text-xs text-blue-700 mt-0.5">
                 {showAppleGuide ? "Click to hide" : "Click to show"}
@@ -184,7 +184,7 @@ export default function PushNotificationToggle() {
               <div>
                 <p className="font-semibold mb-1">📱 iPhone / iPad:</p>
                 <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>When prompted, tap "Allow" to enable notifications</li>
+                  <li>When prompted, tap &quot;Allow&quot; to enable notifications</li>
                   <li>Go to Settings → Notifications</li>
                   <li>Find this app and enable notifications</li>
                   <li>
@@ -197,7 +197,7 @@ export default function PushNotificationToggle() {
               <div>
                 <p className="font-semibold mb-1">🖥️ Mac:</p>
                 <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>When prompted, click "Allow"</li>
+                  <li>When prompted, click &quot;Allow&quot;</li>
                   <li>
                     Go to System Settings → Notifications → Web notifications
                   </li>
@@ -218,7 +218,7 @@ export default function PushNotificationToggle() {
 
       {/* General info */}
       <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-slate-900 mb-2">What you'll get:</h4>
+        <h4 className="text-sm font-semibold text-slate-900 mb-2">What you&apos;ll get:</h4>
         <ul className="space-y-2 text-sm text-slate-600">
           <li className="flex gap-2">
             <span className="text-slate-400">•</span>

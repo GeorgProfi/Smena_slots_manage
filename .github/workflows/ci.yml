@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main, classic_auth]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+  migrations:
+    runs-on: ubuntu-latest
+    needs: lint-and-build
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: volunty
+          POSTGRES_PASSWORD: volunty
+          POSTGRES_DB: volunty
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U volunty -d volunty"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - run: npm ci
+
+      - name: Bootstrap schema (fresh install)
+        env:
+          PGPASSWORD: volunty
+        run: psql -h localhost -U volunty -d volunty -v ON_ERROR_STOP=1 -f docker/postgres/init/01_schema.sql
+
+      - name: Apply migrations
+        env:
+          DATABASE_URL: postgresql://volunty:volunty@localhost:5432/volunty
+        run: npm run db:migrate
+
+      - name: Migrations are idempotent (second run)
+        env:
+          DATABASE_URL: postgresql://volunty:volunty@localhost:5432/volunty
+        run: npm run db:migrate

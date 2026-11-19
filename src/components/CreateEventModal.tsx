@@ -32,6 +32,18 @@ interface SubShift {
   assignees?: RoleAssignee[];
 }
 
+/** Данные слота при открытии модалки на редактирование (из API / календаря). */
+type InitialEventSubShift = {
+  id: string;
+  roleName: string;
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+  capacity: number;
+  assignees?: RoleAssignee[];
+};
+
 interface CreateEventModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -43,7 +55,7 @@ interface CreateEventModalProps {
     title: string;
     start: Date;
     end: Date;
-    subShifts: SubShift[];
+    subShifts: InitialEventSubShift[];
   };
   timezone: string;
   deliveryPoints?: string[];

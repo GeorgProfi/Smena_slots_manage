@@ -156,16 +156,8 @@ export async function PATCH(
         );
       }
 
-      // Delete from auth
       const { error: deleteAuthErr } = await admin.auth.admin.deleteUser(userId);
       if (deleteAuthErr) throw deleteAuthErr;
-
-      // Delete profile (cascade will handle assignments)
-      const { error: deleteProfileErr } = await admin
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
-      if (deleteProfileErr) throw deleteProfileErr;
 
       return NextResponse.json({ success: true, message: "User account deleted" });
     }
